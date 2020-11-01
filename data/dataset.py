@@ -1,7 +1,7 @@
 import numpy
 import pathlib
 from torch.utils.data import Dataset
-from dicom_utils import npz_to_ndarray_and_vox_dim as file_processor
+from .dicom_utils import npz_to_ndarray_and_vox_dim as file_processor
 
 class CT_4DDataset(Dataset):
     def __init__(self, root: str):
