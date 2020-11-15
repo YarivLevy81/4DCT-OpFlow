@@ -12,12 +12,22 @@ class CT_4DDataset(Dataset):
         self.root = root_dir
     
         # Traverse the root directory and count it's size
-        self.files = [f for f in self.root.rglob('*')]
-        self._len = len(self.files)
+        self.patient_directories = []
+        for entry in root_dir.iterdir():
+            if entry.is_dir():
+                self.patient_directories.append(entry)
+
+        self.patient_directories = sorted(self.patient_directories)
+
+        self.patient_files = []
+        for dir in self.patient_directories:
+            for file in dir.iterdir():
+                if file.is_file():
+                    self.patient_files.append(file)
 
     def __len__(self):
-        return self._len
+        # We return pairs -> there are len - 1 pairs from len files
+        return len(self.patient_files) - 1
 
     def __getitem__(self, index):
-        current_file = self.files[index]
-        return file_processor(current_file)
+        return (file_processor(self.patient_files[index]), file_processor(self.patient_files[index+1]))
