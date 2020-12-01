@@ -3,6 +3,7 @@ import pathlib
 from torch.utils.data import Dataset
 from .dicom_utils import npz_to_ndarray_and_vox_dim as file_processor
 
+
 class CT_4DDataset(Dataset):
     def __init__(self, root: str):
         root_dir = pathlib.Path(root)
@@ -10,7 +11,7 @@ class CT_4DDataset(Dataset):
             raise FileExistsError(f"{str(root_dir)} doesn't exist or isn't a directory")
 
         self.root = root_dir
-    
+
         # Traverse the root directory and count it's size
         self.patient_directories = []
         for entry in root_dir.iterdir():
@@ -30,4 +31,8 @@ class CT_4DDataset(Dataset):
         return len(self.patient_files) - 1
 
     def __getitem__(self, index):
-        return (file_processor(self.patient_files[index]), file_processor(self.patient_files[index+1]))
+        return (file_processor(self.patient_files[index]), file_processor(self.patient_files[index + 1]))
+
+
+def get_dataset():
+    pass
