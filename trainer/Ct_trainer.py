@@ -5,10 +5,9 @@ from .base_trainer import BaseTrainer
 
 
 class TrainFramework(BaseTrainer):
-    def __init__(self, train_loader, valid_loader, model, loss_func,
-                 _log, save_root, config):
+    def __init__(self, train_loader, valid_loader, model, loss_func, args):
         super(TrainFramework, self).__init__(
-            train_loader, valid_loader, model, loss_func, _log, save_root, config)
+            train_loader, valid_loader, model, loss_func, args)
 
     def _run_one_epoch(self):
         pass

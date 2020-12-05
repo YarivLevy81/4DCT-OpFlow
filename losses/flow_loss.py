@@ -2,19 +2,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def get_loss(cfg):
-    # if cfg.type == 'unflow':
-    #     loss = unFlowLoss(cfg)
-    # else:
-    #     raise NotImplementedError(cfg.type)
-    # return loss
-    return unFlowLoss(cfg)
+def get_loss(args):
+   
+    return unFlowLoss(args)
 
 
 class unFlowLoss(nn.modules.Module):
-    def __init__(self, cfg):
+    def __init__(self, args):
         super(unFlowLoss, self).__init__()
-        self.cfg = cfg
+        self.args = args
 
     def forward(self, output, target):
         return None

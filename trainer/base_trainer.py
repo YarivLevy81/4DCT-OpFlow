@@ -8,21 +8,21 @@ class BaseTrainer:
     Base class for all trainers
     """
 
-    def __init__(self, train_loader, model, loss_func,
-                 _log, save_root, config):
-        pass
+    def __init__(self, train_loader, valid_loader, model, loss_func, args):
+        self.train_loader = train_loader
+        self.valid_loader = valid_loader
+        self.model = model
+        self.loss_func = loss_func
+        self.args = args
 
     @abstractmethod
     def _run_one_epoch(self):
         ...
 
     def train(self):
-        for epoch in range(self.cfg.epoch_num):
+        for epoch in range(self.args.epochs):
             self._run_one_epoch()
 
-            if self.i_epoch % self.cfg.val_epoch_size == 0:
-                errors, error_names = self._validate_with_gt()
-                valid_res = ' '.join(
-                    '{}: {:.2f}'.format(*t) for t in zip(error_names, errors))
-                self._log.info(' * Epoch {} '.format(self.i_epoch) + valid_res)
+            if epoch % self.args.log_interval == 0:
+                print(' * Epoch {} '.format(epoch))
 

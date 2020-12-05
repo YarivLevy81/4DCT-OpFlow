@@ -6,6 +6,7 @@ from .dicom_utils import npz_to_ndarray_and_vox_dim as file_processor
 
 class CT_4DDataset(Dataset):
     def __init__(self, root: str):
+        print(pathlib.Path.cwd())
         root_dir = pathlib.Path(root)
         if not root_dir.exists() or not root_dir.is_dir:
             raise FileExistsError(f"{str(root_dir)} doesn't exist or isn't a directory")
@@ -31,8 +32,8 @@ class CT_4DDataset(Dataset):
         return len(self.patient_files) - 1
 
     def __getitem__(self, index):
-        return (file_processor(self.patient_files[index]), file_processor(self.patient_files[index + 1]))
+        return file_processor(self.patient_files[index]), file_processor(self.patient_files[index + 1])
 
 
-def get_dataset():
-    pass
+def get_dataset(root="./raw"):
+    return CT_4DDataset(root=root)

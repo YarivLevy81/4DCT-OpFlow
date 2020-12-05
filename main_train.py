@@ -1,5 +1,6 @@
 import torch
 #from utils.torch_utils import init_seed
+import argparse
 
 from data.dataset import get_dataset
 from models.pwc3d import get_model
@@ -7,27 +8,50 @@ from losses.flow_loss import get_loss
 from trainer.get_trainer import get_trainer
 
 
-def main(cfg, _log):
-    #init_seed(cfg.seed)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='4DCT Optical Flow Net')
+    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+                        help='input batch size for training (default: 64)')
+    parser.add_argument('--num-workers', type=int, default=4, metavar='N',
+                        help='number of workers (default: 4)')
+    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
+                        help='input batch size for testing (default: 1000)')
+    parser.add_argument('--epochs', type=int, default=14, metavar='N',
+                        help='number of epochs to train (default: 14)')
+    parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
+                        help='learning rate (default: 1.0)')
+    parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
+                        help='Learning rate step gamma (default: 0.7)')
+    parser.add_argument('--no-cuda', action='store_true', default=False,
+                        help='disables CUDA training')
+    parser.add_argument('--dry-run', action='store_true', default=False,
+                        help='quickly check a single pass')
+    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+                        help='how many batches to wait before logging training status')
+    parser.add_argument('--save-model', action='store_true', default=False,
+                        help='For Saving the current Model')
+    parser.add_argument('--data-path', type=str, default='./data/raw',
+                        help='Location of dataset')
+    args = parser.parse_args()
 
-    _log.info("=> fetching img pairs.")
-    train_set = get_dataset(cfg)
+    train_set = get_dataset(root=args.data_path)
 
-    _log.info('{} samples found'.format(
-        len(train_set)))
+    print('{} samples found'.format(len(train_set)))
 
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=cfg.train.batch_size,
-        num_workers=cfg.train.workers, pin_memory=True, shuffle=True)
+        train_set, batch_size=args.batch_size,
+        num_workers=args.num_workers, pin_memory=True, shuffle=True
+    )
 
-    if cfg.train.epoch_size == 0:
-        cfg.train.epoch_size = len(train_loader)
+    valid_loader = torch.utils.data.DataLoader(
+        train_set, batch_size=args.batch_size,
+        num_workers=args.num_workers, pin_memory=True, shuffle=True
+    )
 
-    cfg.train.epoch_size = min(cfg.train.epoch_size, len(train_loader))
-
-    model = get_model()#cfg.model)
-    loss = get_loss()#cfg.loss)
+    model = get_model(args)
+    loss = get_loss(args)
     trainer = get_trainer()(
-        train_loader, model, loss, _log, cfg.save_root, cfg.train)
+        train_loader, valid_loader, model, loss, args 
+    )
 
     trainer.train()
