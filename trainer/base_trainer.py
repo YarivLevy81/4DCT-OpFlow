@@ -28,10 +28,8 @@ class BaseTrainer:
             self._run_one_epoch()
 
             if self.i_epoch % self.args.log_interval == 0:
-                errors, error_names = self._validate()
-                valid_res = ' '.join(
-                    '{}: {:.2f}'.format(*t) for t in zip(error_names, errors))
-                self._log.info(' * Epoch {} '.format(self.i_epoch) + valid_res)
+                error = self._validate()
+                print(f'Epoch {self.i_epoch}, Error={error}') 
 
     @abstractmethod
     def _run_one_epoch(self):

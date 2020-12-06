@@ -13,4 +13,4 @@ class unFlowLoss(nn.modules.Module):
         self.args = args
 
     def forward(self, output, target):
-        return None
+        return 0

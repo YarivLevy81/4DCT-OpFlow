@@ -26,4 +26,4 @@ class TrainFramework(BaseTrainer):
 
 
     def _validate(self):
-        pass
+        return 0
