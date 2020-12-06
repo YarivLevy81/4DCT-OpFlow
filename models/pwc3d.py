@@ -44,7 +44,7 @@ class PWC3d_Lite(nn.Module):
                                        conv(128, 32, kernel_size=1, stride=1, dilation=1),
                                        conv(96, 32, kernel_size=1, stride=1, dilation=1),
                                        conv(64, 32, kernel_size=1, stride=1, dilation=1),
-                                       conv(32, 32, kernel_size=1, stride=1, dilation=1)]
+                                       conv(32, 32, kernel_size=1, stride=1, dilation=1)])
 
     def num_parameters(self):
         return sum(
@@ -124,9 +124,9 @@ class Correlation(nn.Module):
         for i in range(self.output_dim):
             for j in range(self.output_dim):
                 for k in range(self.output_dim):
-                cost = x1 * x2[:, :, k:(k + D), i:(i + H), j:(j + W)]
-                cost = torch.mean(cost, 1, keepdim=True)
-                cv.append(cost)
+                    cost = x1 * x2[:, :, k:(k + D), i:(i + H), j:(j + W)]
+                    cost = torch.mean(cost, 1, keepdim=True)
+                    cv.append(cost)
 
         return torch.cat(cv, 1)
 
