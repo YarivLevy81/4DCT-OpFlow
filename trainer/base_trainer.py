@@ -12,7 +12,7 @@ class BaseTrainer:
     def __init__(self, train_loader, valid_loader, model, loss_func, args):
         self.train_loader = train_loader
         self.valid_loader = valid_loader
-        self.device = self._init_device()
+        self.device, self.device_ids = self._init_device()
         self.args = args
         
         self.model = self._init_model(model)
@@ -74,7 +74,7 @@ class BaseTrainer:
 
     def _init_device(self):
         # TODO: implement with cuda also
-        return torch.device('cpu')
+        return torch.device('cpu'), None
 
     def save_model(self, error, name):
         is_best = error < self.best_error
