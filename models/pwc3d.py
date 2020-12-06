@@ -13,13 +13,14 @@ def get_model(args):
 
 class PWC3d_Lite(nn.Module):
     def __init__(self, args, upsample=True, reduce_dens=False, search_range=4):
+        super(PWC3d_Lite, self).__init__()
         self.search_range = search_range
         #TODO: num_chs starts from 1 because grayscale?
         self.num_chs = [1, 16, 32, 64, 96, 128, 192]
         self.output_level = 4
         self.num_levels = 7
         self.leakyRELU = nn.LeakyReLU(0.1, inplace=True)
-
+        self.n_frames=2
         self.feature_pyramid_extractor = FeatureExtractor(self.num_chs)
 
         self.upsample = upsample
