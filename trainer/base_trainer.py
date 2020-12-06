@@ -39,7 +39,6 @@ class BaseTrainer:
     def _validate(self):
         ...
     
-    @abstractmethod
     def _get_optimizer(self):
         param_groups = [
             {'params': bias_parameters(self.model.module),
