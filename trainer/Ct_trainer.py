@@ -13,7 +13,7 @@ class TrainFramework(BaseTrainer):
         # puts the model in train mode
         self.model.train()
 
-        for i_step, data in enumerate(self.train_lodaer):
+        for i_step, data in enumerate(self.train_loader):
 
             img1, img2 = data
             res = self.model(img1, img2)

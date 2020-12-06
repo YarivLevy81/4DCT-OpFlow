@@ -3,24 +3,27 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from utils.warp_utils import flow_warp
-#from .correlation_package.correlation import Correlation
+
+
+# from .correlation_package.correlation import Correlation
 
 
 def get_model(args):
     model = PWC3d_Lite(args)
-    
+
     return model
+
 
 class PWC3d_Lite(nn.Module):
     def __init__(self, args, upsample=True, reduce_dens=False, search_range=4):
         super(PWC3d_Lite, self).__init__()
         self.search_range = search_range
-        #TODO: num_chs starts from 1 because grayscale?
+        # TODO: num_chs starts from 1 because grayscale?
         self.num_chs = [1, 16, 32, 64, 96, 128, 192]
         self.output_level = 4
         self.num_levels = 7
         self.leakyRELU = nn.LeakyReLU(0.1, inplace=True)
-        self.n_frames=2
+        self.n_frames = 2
         self.feature_pyramid_extractor = FeatureExtractor(self.num_chs)
 
         self.upsample = upsample
@@ -64,7 +67,7 @@ class PWC3d_Lite(nn.Module):
                     nn.init.constant_(layer.bias, 0)
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
-        
+
         # TODO: features extractor voodo goes here
         x1_p = self.feature_pyramid_extractor(x1) + [x1]
         x2_p = self.feature_pyramid_extractor(x2) + [x2]
@@ -77,12 +80,12 @@ class PWC3d_Lite(nn.Module):
         flow = torch.zeros(N, 3, D, H, W, dtype=init_dtype, device=init_device).float()
 
         for l, (x1, x2) in enumerate(zip(x1_p, x2_p)):
-            
+
             # warping
             if l == 0:
                 x2_warp = x2
             else:
-                flow = F.interpolate(flow*2, scale_factor=2, 
+                flow = F.interpolate(flow * 2, scale_factor=2,
                                      mode='trilinear', align_corners=True)
                 x2_warp = flow_warp(x2, flow)
 
@@ -102,10 +105,10 @@ class PWC3d_Lite(nn.Module):
 
             if l == self.output_level:
                 break
-            
+
         if self.upsample:
-            flows = [F.interpolate(flow * 4, scale_factor=4, 
-                     mode='trilinear', align_corners=True) for flow in flows]
+            flows = [F.interpolate(flow * 4, scale_factor=4,
+                                   mode='trilinear', align_corners=True) for flow in flows]
 
         return flows[::-1]
 

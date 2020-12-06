@@ -67,7 +67,7 @@ class BaseTrainer:
             print("=> Train from scratch")
             model.init_weights()
         
-        # model = torch.nn.DataParallel(model, device_ids=self.device_ids)
+        model = torch.nn.DataParallel(model, device_ids=self.device_ids)
         return model
 
 
