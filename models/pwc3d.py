@@ -62,14 +62,51 @@ class PWC3d_Lite(nn.Module):
                 if layer.bias is not None:
                     nn.init.constant_(layer.bias, 0)
 
-    def forward(self, x1_pyramid, x2_pyramid):
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor):
+        
+        # TODO: features extractor voodo goes here
+        x1_p = self.feature_pyramid_extractor(x1) + [x1]
+        x2_p = self.feature_pyramid_extractor(x2) + [x2]
 
-        # outputs
+        # init
         flows = []
+        N, C, D, H, W = x1_p[0].size()
+        init_dtype = x1_p[0].dtype
+        init_device = x1_p[0].device
+        flow = torch.zeros(N, 3, D, H, W, dtype=init_dtype, device=init_device).float()
 
-        #
+        for l, (x1, x2) in enumerate(zip(x1_p, x2_p)):
+            
+            # warping
+            if l == 0:
+                x2_warp = x2
+            else:
+                flow = F.interpolate(flow*2, scale_factor=2, 
+                                     mode='trilinear', align_corners=True)
+                x2_warp = flow_warp(x2, flow)
 
-        return x1_pyramid
+            # correlation
+            out_corr = self.corr(x1, x2_warp)
+            out_corr_relu = self.leakyRELU(out_corr)
+
+            # concat and estimate flow
+            x1_1by1 = self.conv_1x1[l](x1)
+            x_intm, flow_res = self.flow_estimators(
+                torch.cat([out_corr_relu, x1_1by1, flow], dim=1))
+            flow = flow + flow_res
+
+            flow_fine = self.context_networks(torch.cat([x_intm, flow]), dim=1)
+            flow = flow + flow_fine
+            flows.append(flow)
+
+            if l == self.output_level:
+                break
+            
+        if self.upsample:
+            flows = [F.interpolate(flow * 4, scale_factor=4, 
+                     mode='trilinear', align_corners=True) for flow in flows]
+
+        return flows[::-1]
 
 
 class Correlation(nn.Module):
@@ -79,16 +116,18 @@ class Correlation(nn.Module):
         self.output_dim = 2 * self.max_displacement + 1
         self.pad_size = self.max_displacement
 
-    def forward(self, x1, x2):
-        B, C, H, W = x1.size()
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor):
+        N, C, D, H, W = x1.size()
 
         x2 = F.pad(x2, [self.pad_size] * 4)
         cv = []
         for i in range(self.output_dim):
             for j in range(self.output_dim):
-                cost = x1 * x2[:, :, i:(i + H), j:(j + W)]
+                for k in range(self.output_dim):
+                cost = x1 * x2[:, :, k:(k + D), i:(i + H), j:(j + W)]
                 cost = torch.mean(cost, 1, keepdim=True)
                 cv.append(cost)
+
         return torch.cat(cv, 1)
 
 
@@ -146,6 +185,7 @@ class FeatureExtractor(nn.Module):
             feature_pyramid.append(x)
 
         return feature_pyramid[::-1]
+
 
 class FlowEstimatorDense(nn.Module):
     def __init__(self, ch_in):

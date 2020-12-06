@@ -35,6 +35,12 @@ class FeatureExtractor(nn.Module):
             )
             self.convs.append(layer)
 
+    '''
+    
+
+
+    '''
+
     def forward(self, x):
         feature_pyramid = []
         for conv in self.convs:
