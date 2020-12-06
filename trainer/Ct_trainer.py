@@ -14,14 +14,15 @@ class TrainFramework(BaseTrainer):
         self.model.train()
 
         for i_step, data in enumerate(self.train_lodaer):
-            print(f'Itearion {i_step} of epoch {self.i_epoch}')
 
             img1, img2 = data
             res = self.model(img1, img2)
             
             self.optimizer.zero_grad()
-            loss = 0
-
+            loss = self.loss_func(img1, img2)
+            print(f'Itearion {i_step} of epoch {self.i_epoch} - Loss = {loss}')
+            loss.backward()
+            self.optimizer.step()
 
 
     def _validate(self):
