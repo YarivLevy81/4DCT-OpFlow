@@ -68,20 +68,24 @@ class PWC3d_Lite(nn.Module):
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
         
-        x1_voxdim = x1[1]
-        x1 = x1[0]
-        x2_voxdim = x2[1]
-        x2 = x2[0]
+        x1_voxdim = x1[1].float()
+        x1 = x1[0].unsqueeze(1) # Add channel dimesnsion
+        x2_voxdim = x2[1].float()
+        x2 = x2[0].unsqueeze(1)
 
+        print(x1.size())
+        print(x1[0])
         # TODO: features extractor voodo goes here
         x1_p = self.feature_pyramid_extractor(x1) + [x1]
         x2_p = self.feature_pyramid_extractor(x2) + [x2]
 
+        print(f'Pyramidized inputs')
+
         # init
         flows = []
-        N, C, D, H, W = x1_p[0].size()
-        init_dtype = x1_p[0].dtype
-        init_device = x1_p[0].device
+        N, C, D, H, W = x1.size()
+        init_dtype = x1.dtype
+        init_device = x1.device
         flow = torch.zeros(N, 3, D, H, W, dtype=init_dtype, device=init_device).float()
 
         for l, (x1, x2) in enumerate(zip(x1_p, x2_p)):

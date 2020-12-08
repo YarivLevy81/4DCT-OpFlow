@@ -7,7 +7,6 @@ from models.pwc3d import get_model
 from losses.flow_loss import get_loss
 from trainer.get_trainer import get_trainer
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='4DCT Optical Flow Net')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
@@ -41,7 +40,7 @@ if __name__ == '__main__':
     print('{} samples found'.format(len(train_set)))
 
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=args.batch_size,
+        train_set, batch_size=1,
         num_workers=args.num_workers, pin_memory=False, shuffle=True
     )
 
