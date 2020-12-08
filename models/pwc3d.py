@@ -33,8 +33,8 @@ class PWC3d_Lite(nn.Module):
                                 max_displacement=self.search_range, stride1=1,
                                 stride2=1, corr_multiply=1)
 
-        self.dim_corr = (self.search_range * 2 + 1) ** 2
-        self.num_ch_in = 32 + (self.dim_corr + 2) * (self.n_frames - 1)
+        self.dim_corr = (self.search_range * 2 + 1) ** 3 # ^3 because we have another dimension
+        self.num_ch_in = 32 + (self.dim_corr + 2) * (self.n_frames - 1) + 1 # Added +1 because it fits the model lol
 
         if self.reduce_dense:
             self.flow_estimators = FlowEstimatorReduce(self.num_ch_in)
@@ -42,7 +42,7 @@ class PWC3d_Lite(nn.Module):
             self.flow_estimators = FlowEstimatorDense(self.num_ch_in)
 
         self.context_networks = ContextNetwork(
-            (self.flow_estimators.feat_dim + 2) * (self.n_frames - 1))
+            (self.flow_estimators.feat_dim + 2) * (self.n_frames - 1) + 1) # Added +1 becuase it fits the model lol
 
         self.conv_1x1 = nn.ModuleList([conv(192, 32, kernel_size=1, stride=1, dilation=1),
                                        conv(128, 32, kernel_size=1, stride=1, dilation=1),
@@ -83,16 +83,16 @@ class PWC3d_Lite(nn.Module):
 
         # init
         flows = []
-        N, C, H, W, D = x1.size()
-        init_dtype = x1.dtype
-        init_device = x1.device
+        N, C, H, W, D = x1_p[0].size()
+        init_dtype = x1_p[0].dtype
+        init_device = x1_p[0].device
         flow = torch.zeros(N, 3, H, W, D, dtype=init_dtype, device=init_device).float()
 
         print(flow.size())
         print(f'forward init complete')
 
         for l, (_x1, _x2) in enumerate(zip(x1_p, x2_p)):
-
+            
             # warping
             if l == 0:
                 x2_warp = _x2
@@ -107,16 +107,28 @@ class PWC3d_Lite(nn.Module):
 
             # concat and estimate flow
             x1_1by1 = self.conv_1x1[l](_x1)
+            print(f'Sizes - x1={x1.size()}, x2={x2.size()}, x1_1b1y={x1_1by1.size()}, out_corr_relu = {out_corr_relu.size()}, flow={flow.size()}')
+
+            cat = torch.cat([out_corr_relu, x1_1by1, flow], dim=1)
+            print(f'Completed concatenation 1')
+
             x_intm, flow_res = self.flow_estimators(
                 torch.cat([out_corr_relu, x1_1by1, flow], dim=1))
             flow = flow + flow_res
+            print(f'Completed flow estimation')
 
-            flow_fine = self.context_networks(torch.cat([x_intm, flow]), dim=1)
-            flow = flow + flow_fine
+            print(f'Sizes - x_intm={x_intm.size()}, flow = {flow.size()}')
+            flow_fine = self.context_networks(torch.cat([x_intm, flow], dim=1))
+            print(f'Completed forward of context_networks')
+
+            print(f'Sizes - flow={flow.size()}, flow_fine={flow_fine.size()}')
+            flow = torch.cat([flow, flow_fine], dim=1) 
             flows.append(flow)
 
             if l == self.output_level:
                 break
+            
+            print(f'Ended iteration of flows')
 
         if self.upsample:
             flows = [F.interpolate(flow * 4, scale_factor=4,
@@ -136,7 +148,7 @@ class Correlation(nn.Module):
         N, C, H, W, D = x1.size()
 
         print(x1.size(), x2.size())
-        x2 = F.pad(x2, [self.pad_size] * 6)
+        x2 = F.pad(x2, [self.pad_size] * 6) # 6 becasuse of 3D
         print(x2.size())
         cv = []
         iter = 0
@@ -214,15 +226,17 @@ class FeatureExtractor(nn.Module):
 class FlowEstimatorDense(nn.Module):
     def __init__(self, ch_in):
         super(FlowEstimatorDense, self).__init__()
+        print(f'ch_in={ch_in}')
         self.conv1 = conv(ch_in, 128)
         self.conv2 = conv(ch_in + 128, 128)
         self.conv3 = conv(ch_in + 256, 96)
         self.conv4 = conv(ch_in + 352, 64)
         self.conv5 = conv(ch_in + 416, 32)
         self.feat_dim = ch_in + 448
-        self.conv_last = conv(ch_in + 448, 2, isReLU=False)
+        self.conv_last = conv(ch_in + 448, 3, isReLU=False)
 
     def forward(self, x):
+        print(f'Dense estimator')
         x1 = torch.cat([self.conv1(x), x], dim=1)
         x2 = torch.cat([self.conv2(x1), x1], dim=1)
         x3 = torch.cat([self.conv3(x2), x2], dim=1)
