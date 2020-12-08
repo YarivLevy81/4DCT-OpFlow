@@ -67,6 +67,11 @@ class PWC3d_Lite(nn.Module):
                     nn.init.constant_(layer.bias, 0)
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
+        
+        x1_voxdim = x1[1]
+        x1 = x1[0]
+        x2_voxdim = x2[1]
+        x2 = x2[0]
 
         # TODO: features extractor voodo goes here
         x1_p = self.feature_pyramid_extractor(x1) + [x1]
