@@ -83,27 +83,30 @@ class PWC3d_Lite(nn.Module):
 
         # init
         flows = []
-        N, C, D, H, W = x1.size()
+        N, C, H, W, D = x1.size()
         init_dtype = x1.dtype
         init_device = x1.device
-        flow = torch.zeros(N, 3, D, H, W, dtype=init_dtype, device=init_device).float()
+        flow = torch.zeros(N, 3, H, W, D, dtype=init_dtype, device=init_device).float()
 
-        for l, (x1, x2) in enumerate(zip(x1_p, x2_p)):
+        print(flow.size())
+        print(f'forward init complete')
+
+        for l, (_x1, _x2) in enumerate(zip(x1_p, x2_p)):
 
             # warping
             if l == 0:
-                x2_warp = x2
+                x2_warp = _x2
             else:
                 flow = F.interpolate(flow * 2, scale_factor=2,
                                      mode='trilinear', align_corners=True)
-                x2_warp = flow_warp(x2, flow)
+                x2_warp = flow_warp(_x2, flow)
 
             # correlation
-            out_corr = self.corr(x1, x2_warp)
+            out_corr = self.corr(_x1, x2_warp)
             out_corr_relu = self.leakyRELU(out_corr)
 
             # concat and estimate flow
-            x1_1by1 = self.conv_1x1[l](x1)
+            x1_1by1 = self.conv_1x1[l](_x1)
             x_intm, flow_res = self.flow_estimators(
                 torch.cat([out_corr_relu, x1_1by1, flow], dim=1))
             flow = flow + flow_res
@@ -130,17 +133,25 @@ class Correlation(nn.Module):
         self.pad_size = self.max_displacement
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
-        N, C, D, H, W = x1.size()
+        N, C, H, W, D = x1.size()
 
-        x2 = F.pad(x2, [self.pad_size] * 4)
+        print(x1.size(), x2.size())
+        x2 = F.pad(x2, [self.pad_size] * 6)
+        print(x2.size())
         cv = []
+        iter = 0
+        print(f'output_dim={self.output_dim}')
         for i in range(self.output_dim):
             for j in range(self.output_dim):
                 for k in range(self.output_dim):
-                    cost = x1 * x2[:, :, k:(k + D), i:(i + H), j:(j + W)]
+                    print(iter)
+                    iter += 1
+                    print(x2[:, :, i:(i + H), j:(j + W), k:(k + D)].size())
+                    cost = x1 * x2[:, :, i:(i + H), j:(j + W), k:(k + D)]
                     cost = torch.mean(cost, 1, keepdim=True)
                     cv.append(cost)
 
+        print("Bye")
         return torch.cat(cv, 1)
 
 
