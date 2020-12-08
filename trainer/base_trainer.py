@@ -41,9 +41,11 @@ class BaseTrainer:
     
     def _get_optimizer(self):
         param_groups = [
-            {'params': bias_parameters(self.model.module),
+            {'params': bias_parameters(self.model),
+            #{'params': bias_parameters(self.model.module),
              'weight_decay': 0},
-            {'params': weight_parameters(self.model.module),
+            {'params': weight_parameters(self.model),
+            #{'params': weight_parameters(self.model.module),
              'weight_decay': 1e-6}]
 
         return torch.optim.Adam(param_groups, self.args.lr, 
@@ -66,8 +68,11 @@ class BaseTrainer:
         else:
             print("=> Train from scratch")
             model.init_weights()
-        
-        model = torch.nn.DataParallel(model, device_ids=self.device_ids)
+
+        if torch.cuda.device_count() > 1 and self.device != torch.device('cpu'):
+            print(f'Data parlelling the model')
+            model = torch.nn.DataParallel(model, device_ids=self.device_ids)
+
         return model
 
 
