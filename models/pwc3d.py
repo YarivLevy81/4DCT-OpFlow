@@ -15,7 +15,7 @@ def get_model(args):
 
 
 class PWC3d_Lite(nn.Module):
-    def __init__(self, args, upsample=True, reduce_dens=False, search_range=4):
+    def __init__(self, args, upsample=True, reduce_dense=True, search_range=4):
         super(PWC3d_Lite, self).__init__()
         self.search_range = search_range
         # TODO: num_chs starts from 1 because grayscale?
@@ -27,7 +27,7 @@ class PWC3d_Lite(nn.Module):
         self.feature_pyramid_extractor = FeatureExtractor(self.num_chs)
 
         self.upsample = upsample
-        self.reduce_dense = reduce_dens
+        self.reduce_dense = reduce_dense #CHANGED DEFAULT TO true
 
         self.corr = Correlation(pad_size=self.search_range, kernel_size=1,
                                 max_displacement=self.search_range, stride1=1,
@@ -42,7 +42,7 @@ class PWC3d_Lite(nn.Module):
             self.flow_estimators = FlowEstimatorDense(self.num_ch_in)
 
         self.context_networks = ContextNetwork(
-            (self.flow_estimators.feat_dim + 2) * (self.n_frames - 1) + 1) # Added +1 becuase it fits the model lol
+            (self.flow_estimators.feat_dim + 2) * (self.n_frames - 1) + 1) # Added +1 because it fits the model lol
 
         self.conv_1x1 = nn.ModuleList([conv(192, 32, kernel_size=1, stride=1, dilation=1),
                                        conv(128, 32, kernel_size=1, stride=1, dilation=1),
@@ -148,7 +148,7 @@ class Correlation(nn.Module):
         N, C, H, W, D = x1.size()
 
         print(x1.size(), x2.size())
-        x2 = F.pad(x2, [self.pad_size] * 6) # 6 becasuse of 3D
+        x2 = F.pad(x2, [self.pad_size] * 6) # 6 because of 3D
         print(x2.size())
         cv = []
         iter = 0
