@@ -69,7 +69,7 @@ class PWC3d_Lite(nn.Module):
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
         
         x1_voxdim = x1[1]
-        x1 = x1[0].unsqueeze(1).float() # Add channel dimesnsion
+        x1 = x1[0].unsqueeze(1).float() # Add channel dimension
         x2_voxdim = x2[1]
         x2 = x2[0].unsqueeze(1).float()
 
@@ -120,9 +120,9 @@ class PWC3d_Lite(nn.Module):
             print(f'Sizes - x_intm={x_intm.size()}, flow = {flow.size()}')
             flow_fine = self.context_networks(torch.cat([x_intm, flow], dim=1))
             print(f'Completed forward of context_networks')
-
             print(f'Sizes - flow={flow.size()}, flow_fine={flow_fine.size()}')
-            flow = torch.cat([flow, flow_fine], dim=1) 
+            #flow = torch.cat([flow, flow_fine], dim=1)
+            flow=flow+flow_fine
             flows.append(flow)
 
             if l == self.output_level:
@@ -194,7 +194,7 @@ class ContextNetwork(nn.Module):
             conv(128, 96, 3, 1, 8),
             conv(96, 64, 3, 1, 16),
             conv(64, 32, 3, 1, 1),
-            conv(32, 2, isReLU=False)
+            conv(32, 3, isReLU=False)
         )
 
     def forward(self, x):
@@ -256,7 +256,7 @@ class FlowEstimatorReduce(nn.Module):
         self.conv4 = conv(128 + 96, 64)
         self.conv5 = conv(96 + 64, 32)
         self.feat_dim = 32
-        self.predict_flow = conv(64 + 32, 2, isReLU=False)
+        self.predict_flow = conv(64 + 32, 3, isReLU=False)
 
     def forward(self, x):
         x1 = self.conv1(x)
