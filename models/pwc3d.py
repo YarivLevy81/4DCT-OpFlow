@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from utils.warp_utils import flow_warp
-
+from utils.misc import log
 
 # from .correlation_package.correlation import Correlation
 
@@ -73,13 +73,13 @@ class PWC3d_Lite(nn.Module):
         x2_voxdim = x2[1]
         x2 = x2[0].unsqueeze(1).float()
 
-        print(x1.size())
-        print(x1[0])
+        log(x1.size())
+        log(x1[0])
         # TODO: features extractor voodo goes here
         x1_p = self.feature_pyramid_extractor(x1) + [x1]
         x2_p = self.feature_pyramid_extractor(x2) + [x2]
 
-        print(f'Pyramidized inputs')
+        log(f'Pyramidized inputs')
 
         # init
         flows = []
@@ -88,11 +88,11 @@ class PWC3d_Lite(nn.Module):
         init_device = x1_p[0].device
         flow = torch.zeros(N, 3, H, W, D, dtype=init_dtype, device=init_device).float()
 
-        print(flow.size())
-        print(f'forward init complete')
+        log(flow.size())
+        log(f'forward init complete')
 
         for l, (_x1, _x2) in enumerate(zip(x1_p, x2_p)):
-            
+            print(f'Level {l + 1} flow...')
             # warping
             if l == 0:
                 x2_warp = _x2
@@ -107,20 +107,20 @@ class PWC3d_Lite(nn.Module):
 
             # concat and estimate flow
             x1_1by1 = self.conv_1x1[l](_x1)
-            print(f'Sizes - x1={x1.size()}, x2={x2.size()}, x1_1b1y={x1_1by1.size()}, out_corr_relu = {out_corr_relu.size()}, flow={flow.size()}')
+            log(f'Sizes - x1={x1.size()}, x2={x2.size()}, x1_1b1y={x1_1by1.size()}, out_corr_relu = {out_corr_relu.size()}, flow={flow.size()}')
 
             cat = torch.cat([out_corr_relu, x1_1by1, flow], dim=1)
-            print(f'Completed concatenation 1')
+            log(f'Completed concatenation 1')
 
             x_intm, flow_res = self.flow_estimators(
                 torch.cat([out_corr_relu, x1_1by1, flow], dim=1))
             flow = flow + flow_res
-            print(f'Completed flow estimation')
+            log(f'Completed flow estimation')
 
-            print(f'Sizes - x_intm={x_intm.size()}, flow = {flow.size()}')
+            log(f'Sizes - x_intm={x_intm.size()}, flow = {flow.size()}')
             flow_fine = self.context_networks(torch.cat([x_intm, flow], dim=1))
-            print(f'Completed forward of context_networks')
-            print(f'Sizes - flow={flow.size()}, flow_fine={flow_fine.size()}')
+            log(f'Completed forward of context_networks')
+            log(f'Sizes - flow={flow.size()}, flow_fine={flow_fine.size()}')
             #flow = torch.cat([flow, flow_fine], dim=1)
             flow=flow+flow_fine
             flows.append(flow)
@@ -128,7 +128,7 @@ class PWC3d_Lite(nn.Module):
             if l == self.output_level:
                 break
             
-            print(f'Ended iteration of flows')
+            log(f'Ended iteration of flows')
 
         if self.upsample:
             flows = [F.interpolate(flow * 4, scale_factor=4,
@@ -147,23 +147,23 @@ class Correlation(nn.Module):
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
         N, C, H, W, D = x1.size()
 
-        print(x1.size(), x2.size())
+        log(x1.size(), x2.size())
         x2 = F.pad(x2, [self.pad_size] * 6) # 6 because of 3D
-        print(x2.size())
+        log(x2.size())
         cv = []
         iter = 0
-        print(f'output_dim={self.output_dim}')
+        log(f'output_dim={self.output_dim}')
         for i in range(self.output_dim):
             for j in range(self.output_dim):
                 for k in range(self.output_dim):
-                    print(iter)
+                    log(iter)
                     iter += 1
-                    print(x2[:, :, i:(i + H), j:(j + W), k:(k + D)].size())
+                    log(x2[:, :, i:(i + H), j:(j + W), k:(k + D)].size())
                     cost = x1 * x2[:, :, i:(i + H), j:(j + W), k:(k + D)]
                     cost = torch.mean(cost, 1, keepdim=True)
                     cv.append(cost)
 
-        print("Bye")
+        log("Bye")
         return torch.cat(cv, 1)
 
 
@@ -226,7 +226,7 @@ class FeatureExtractor(nn.Module):
 class FlowEstimatorDense(nn.Module):
     def __init__(self, ch_in):
         super(FlowEstimatorDense, self).__init__()
-        print(f'ch_in={ch_in}')
+        log(f'ch_in={ch_in}')
         self.conv1 = conv(ch_in, 128)
         self.conv2 = conv(ch_in + 128, 128)
         self.conv3 = conv(ch_in + 256, 96)
@@ -236,7 +236,7 @@ class FlowEstimatorDense(nn.Module):
         self.conv_last = conv(ch_in + 448, 3, isReLU=False)
 
     def forward(self, x):
-        print(f'Dense estimator')
+        log(f'Dense estimator')
         x1 = torch.cat([self.conv1(x), x], dim=1)
         x2 = torch.cat([self.conv2(x1), x1], dim=1)
         x3 = torch.cat([self.conv3(x2), x2], dim=1)

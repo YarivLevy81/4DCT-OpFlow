@@ -1,5 +1,6 @@
 import time
 import torch
+import torch.nn as nn
 import numpy as np
 from .base_trainer import BaseTrainer
 from utils.warp_utils import flow_warp
@@ -15,13 +16,19 @@ class TrainFramework(BaseTrainer):
 
         for i_step, data in enumerate(self.train_loader):
 
-            img1, img2 = data
+            img1, img2 = data            
             res = self.model(img1, img2)
             
+            # just for sake of having real flow
+            img1 = img1[0].unsqueeze(1).float() # Add channel dimension
+            img2 = img2[0].unsqueeze(1).float() # Add channel dimension
+
             self.optimizer.zero_grad()
-            loss = self.loss_func(img1, img2)
-            print(f'Itearion {i_step} of epoch {self.i_epoch} - Loss = {loss}')
-            loss.backward()
+            # loss = self.loss_func(img1, img2)
+            loss = nn.MSELoss()
+            output = loss(res[0], img2)
+            print(f'Itearion {i_step + 1} of epoch {self.i_epoch + 1} - Loss = {output}')
+            output.backward()
             self.optimizer.step()
 
 

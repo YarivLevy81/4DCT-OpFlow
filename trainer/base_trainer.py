@@ -29,7 +29,8 @@ class BaseTrainer:
 
             if self.i_epoch % self.args.log_interval == 0:
                 error = self._validate()
-                print(f'Epoch {self.i_epoch}, Error={error}') 
+                print(f'Epoch {self.i_epoch}, Error={error}')
+                self.i_epoch += 1 
 
     @abstractmethod
     def _run_one_epoch(self):
