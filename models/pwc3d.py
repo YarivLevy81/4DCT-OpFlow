@@ -109,9 +109,6 @@ class PWC3d_Lite(nn.Module):
             x1_1by1 = self.conv_1x1[l](_x1)
             log(f'Sizes - x1={x1.size()}, x2={x2.size()}, x1_1b1y={x1_1by1.size()}, out_corr_relu = {out_corr_relu.size()}, flow={flow.size()}')
 
-            cat = torch.cat([out_corr_relu, x1_1by1, flow], dim=1)
-            log(f'Completed concatenation 1')
-
             x_intm, flow_res = self.flow_estimators(
                 torch.cat([out_corr_relu, x1_1by1, flow], dim=1))
             flow = flow + flow_res
@@ -121,11 +118,11 @@ class PWC3d_Lite(nn.Module):
             flow_fine = self.context_networks(torch.cat([x_intm, flow], dim=1))
             log(f'Completed forward of context_networks')
             log(f'Sizes - flow={flow.size()}, flow_fine={flow_fine.size()}')
-            #flow = torch.cat([flow, flow_fine], dim=1)
-            flow=flow+flow_fine
+            flow = flow + flow_fine
             flows.append(flow)
 
             if l == self.output_level:
+                log(f'Broke flow construction at level {l+1}')
                 break
             
             log(f'Ended iteration of flows')

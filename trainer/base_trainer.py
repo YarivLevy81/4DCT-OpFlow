@@ -4,6 +4,7 @@ from abc import abstractmethod
 from utils.torch_utils import bias_parameters, weight_parameters, \
     load_checkpoint, save_checkpoint
 
+
 class BaseTrainer:
     """
     Base class for all trainers

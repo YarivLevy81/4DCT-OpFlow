@@ -33,6 +33,8 @@ if __name__ == '__main__':
                         help='Location of dataset')
     parser.add_argument('--pretrained-model', type=str, default=None,
                         help='Location of a PWC3D pretrained model')
+    parser.add_argument('--alpha', type=float, default=10.,
+                        help='Alpha value for smooth loss')
     args = parser.parse_args()
 
     train_set = get_dataset(root=args.data_path)
