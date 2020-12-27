@@ -33,9 +33,9 @@ class CT_4DDataset(Dataset):
             img1 = pad_img_to_128(img1)
             img2 = pad_img_to_128(img2)
         if self.patient_samples[index]['dim'] == 512:
-            img1 = crop_512to_256(img1)
-            img2 = crop_512to_256(img2)
-        #normalizing data to 0-1
+            img1, img2 = crop_512_imgs_to_256(img1, img2)
+
+        # normalizing data to 0-1
         img1 = img1 / 4196
         img2 = img2 / 4196
         # img1 = zoom(img1, (0.25, 0.25, 0.25))
@@ -69,11 +69,13 @@ def pad_img_to_128(img):
     return pad
 
 
-def crop_512to_256(image):
+def crop_512_imgs_to_256(image1, image2):
     # returns a random quarter of an image
     i = np.random.randint(2)
     j = np.random.randint(2)
-    return image[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :]
+    return (
+        image1[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :],
+        image2[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
 
 
 def get_dataset(root="./raw"):
