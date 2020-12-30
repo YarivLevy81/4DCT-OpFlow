@@ -69,7 +69,7 @@ class PWC3d_Lite(nn.Module):
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
         
         x1_voxdim = x1[1]
-        x1 = x1[0].unsqueeze(1).float() # Add channel dimension
+        x1 = x1[0].unsqueeze(1).float()  # Add channel dimension
         x2_voxdim = x2[1]
         x2 = x2[0].unsqueeze(1).float()
 

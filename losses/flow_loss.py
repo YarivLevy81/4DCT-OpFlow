@@ -15,7 +15,7 @@ class UnFlowLoss(nn.modules.Module):
         super(UnFlowLoss, self).__init__()
         self.args = args
 
-    def forward(self, output, img1, img2):
+    def forward(self, output, img1, img2, vox_dim):
 
         pyramid_flows = output
 
@@ -23,8 +23,8 @@ class UnFlowLoss(nn.modules.Module):
 
         s = 1.
         for i, flow in enumerate(pyramid_flows):
-            log(f'Aggreagting loss of pyramid level {i+1}')
-            print(f'Aggreagting loss of pyramid level {i+1}')
+            log(f'Aggregating loss of pyramid level {i+1}')
+            print(f'Aggregating loss of pyramid level {i+1}')
 
             N, C, H, W, D = flow.size()
 
@@ -32,13 +32,16 @@ class UnFlowLoss(nn.modules.Module):
             img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
 
             flow12 = flow[:, :3]
-            print(f'img1_scaled.size()={img1_scaled.size()}, flows12.size()={flow12.size()}')
-            img1_recons = flow_warp(img1_scaled, flow12)  # Not sure about flow extraction here
+            print(
+                f'img1_scaled.size()={img1_scaled.size()}, flows12.size()={flow12.size()}')
+            # Not sure about flow extraction here
+            img1_recons = flow_warp(img1_scaled, flow12)
 
             if i == 0:
-                s = min(H, W)
+                s = min(H, W, D)
 
-            loss_smooth = self.loss_smooth(flow=flow12 / s, img1_scaled=img1_recons)
+            loss_smooth = self.loss_smooth(
+                flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             pyarmid_smooth_losses.append(loss_smooth)
 
         loss_smooth = sum(pyarmid_smooth_losses)
@@ -49,7 +52,7 @@ class UnFlowLoss(nn.modules.Module):
     def loss_photometric(self, img1_scaled, img1_recons, occu_mask1):
         loss = []
 
-    def loss_smooth(self, flow, img1_scaled):
+    def loss_smooth(self, flow, img1_scaled, vox_dim):
         # if 'smooth_2nd' in self.cfg and self.cfg.smooth_2nd:
         #    func_smooth = smooth_grad_2nd
         # else:
@@ -57,7 +60,7 @@ class UnFlowLoss(nn.modules.Module):
         func_smooth = smooth_grad_1st
 
         loss = []
-        loss += [func_smooth(flow, img1_scaled, self.args.alpha)]
+        loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
         return sum([l.mean() for l in loss])
 
 
@@ -73,7 +76,8 @@ def TernaryLoss(im, im_warp, max_distance=1):
     def _ternary_transform(image):
         intensities = _rgb_to_grayscale(image) * 255
         out_channels = patch_size * patch_size
-        w = torch.eye(out_channels).view((out_channels, 1, patch_size, patch_size))
+        w = torch.eye(out_channels).view(
+            (out_channels, 1, patch_size, patch_size))
         weights = w.type_as(im)
         patches = F.conv2d(intensities, weights, padding=max_distance)
         transf = patches - intensities
@@ -122,20 +126,23 @@ def SSIM(x, y, md=1):
     return dist
 
 
-def gradient(data):
-    D_dy = data[:, :, 1:] - data[:, :, :-1]
-    D_dx = data[:, :, :, 1:] - data[:, :, :, :-1]
-    D_dz = data[:, :, :, :, 1:] - data[:, :, :, :, :-1]
+def gradient(data, vox_dims=[1, 1, 1]):
+    D_dy = (data[:, :, 1:] - data[:, :, :-1])/vox_dims[1]
+    D_dx = (data[:, :, :, 1:] - data[:, :, :, :-1])/vox_dims[0]
+    D_dz = (data[:, :, :, :, 1:] - data[:, :, :, :, :-1])/vox_dims[2]
     return D_dx, D_dy, D_dz
 
 
-def smooth_grad_1st(flo, image, alpha):
-    img_dx, img_dy, img_dz = gradient(image)
-    weights_x = torch.exp(-torch.mean(torch.abs(img_dx), 1, keepdim=True) * alpha)
-    weights_y = torch.exp(-torch.mean(torch.abs(img_dy), 1, keepdim=True) * alpha)
-    weights_z = torch.exp(-torch.mean(torch.abs(img_dz), 1, keepdim=True) * alpha)
+def smooth_grad_1st(flo, image, vox_dims, alpha):
+    img_dx, img_dy, img_dz = gradient(image, vox_dims)
+    weights_x = torch.exp(-torch.mean(torch.abs(img_dx),
+                                      1, keepdim=True) * alpha)
+    weights_y = torch.exp(-torch.mean(torch.abs(img_dy),
+                                      1, keepdim=True) * alpha)
+    weights_z = torch.exp(-torch.mean(torch.abs(img_dz),
+                                      1, keepdim=True) * alpha)
 
-    dx, dy, dz = gradient(flo)
+    dx, dy, dz = gradient(flo, vox_dims)
 
     loss_x = weights_x * dx.abs() / 2.
     loss_y = weights_y * dy.abs() / 2.
@@ -146,8 +153,10 @@ def smooth_grad_1st(flo, image, alpha):
 
 def smooth_grad_2nd(flo, image, alpha):
     img_dx, img_dy = gradient(image)
-    weights_x = torch.exp(-torch.mean(torch.abs(img_dx), 1, keepdim=True) * alpha)
-    weights_y = torch.exp(-torch.mean(torch.abs(img_dy), 1, keepdim=True) * alpha)
+    weights_x = torch.exp(-torch.mean(torch.abs(img_dx),
+                                      1, keepdim=True) * alpha)
+    weights_y = torch.exp(-torch.mean(torch.abs(img_dy),
+                                      1, keepdim=True) * alpha)
 
     dx, dy = gradient(flo)
     dx2, dxdy = gradient(dx)
