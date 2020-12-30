@@ -27,14 +27,16 @@ class PWC3d_Lite(nn.Module):
         self.feature_pyramid_extractor = FeatureExtractor(self.num_chs)
 
         self.upsample = upsample
-        self.reduce_dense = reduce_dense #CHANGED DEFAULT TO true
+        self.reduce_dense = reduce_dense  # CHANGED DEFAULT TO true
 
         self.corr = Correlation(pad_size=self.search_range, kernel_size=1,
                                 max_displacement=self.search_range, stride1=1,
                                 stride2=1, corr_multiply=1)
 
-        self.dim_corr = (self.search_range * 2 + 1) ** 3 # ^3 because we have another dimension
-        self.num_ch_in = 32 + (self.dim_corr + 2) * (self.n_frames - 1) + 1 # Added +1 because it fits the model lol
+        self.dim_corr = (self.search_range * 2 + 1) ** 3
+        # ^3 because we have another dimension
+        self.num_ch_in = 32 + (self.dim_corr + 2) * (self.n_frames - 1) + 1
+        # Added +1 because it fits the model lol
 
         if self.reduce_dense:
             self.flow_estimators = FlowEstimatorReduce(self.num_ch_in)
@@ -42,13 +44,19 @@ class PWC3d_Lite(nn.Module):
             self.flow_estimators = FlowEstimatorDense(self.num_ch_in)
 
         self.context_networks = ContextNetwork(
-            (self.flow_estimators.feat_dim + 2) * (self.n_frames - 1) + 1) # Added +1 because it fits the model lol
+            (self.flow_estimators.feat_dim + 2) * (self.n_frames - 1) + 1)
+        # Added +1 because it fits the model lol
 
-        self.conv_1x1 = nn.ModuleList([conv(192, 32, kernel_size=1, stride=1, dilation=1),
-                                       conv(128, 32, kernel_size=1, stride=1, dilation=1),
-                                       conv(96, 32, kernel_size=1, stride=1, dilation=1),
-                                       conv(64, 32, kernel_size=1, stride=1, dilation=1),
-                                       conv(32, 32, kernel_size=1, stride=1, dilation=1)])
+        self.conv_1x1 = nn.ModuleList([conv(192, 32, kernel_size=1,
+                                            stride=1, dilation=1),
+                                       conv(128, 32, kernel_size=1,
+                                            stride=1, dilation=1),
+                                       conv(96, 32, kernel_size=1,
+                                            stride=1, dilation=1),
+                                       conv(64, 32, kernel_size=1,
+                                            stride=1, dilation=1),
+                                       conv(32, 32, kernel_size=1,
+                                            stride=1, dilation=1)])
 
     def num_parameters(self):
         return sum(
@@ -67,7 +75,7 @@ class PWC3d_Lite(nn.Module):
                     nn.init.constant_(layer.bias, 0)
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
-        
+
         x1_voxdim = x1[1]
         x1 = x1[0].unsqueeze(1).float()  # Add channel dimension
         x2_voxdim = x2[1]
@@ -124,7 +132,7 @@ class PWC3d_Lite(nn.Module):
             if l == self.output_level:
                 log(f'Broke flow construction at level {l+1}')
                 break
-            
+
             log(f'Ended iteration of flows')
 
         if self.upsample:
@@ -145,7 +153,7 @@ class Correlation(nn.Module):
         N, C, H, W, D = x1.size()
 
         log(x1.size(), x2.size())
-        x2 = F.pad(x2, [self.pad_size] * 6) # 6 because of 3D
+        x2 = F.pad(x2, [self.pad_size] * 6)  # 6 because of 3D
         log(x2.size())
         cv = []
         iter = 0
@@ -167,15 +175,15 @@ class Correlation(nn.Module):
 def conv(in_planes, out_planes, kernel_size=3, stride=1, dilation=1, isReLU=True):
     if isReLU:
         return nn.Sequential(
-            nn.Conv3d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
-                      dilation=dilation,
+            nn.Conv3d(in_planes, out_planes, kernel_size=kernel_size,
+                      stride=stride, dilation=dilation,
                       padding=((kernel_size - 1) * dilation) // 2, bias=True),
             nn.LeakyReLU(0.1, inplace=True)
         )
     else:
         return nn.Sequential(
-            nn.Conv3d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
-                      dilation=dilation,
+            nn.Conv3d(in_planes, out_planes, kernel_size=kernel_size,
+                      stride=stride, dilation=dilation,
                       padding=((kernel_size - 1) * dilation) // 2, bias=True)
         )
 

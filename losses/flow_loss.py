@@ -6,7 +6,7 @@ from utils.misc import log
 
 
 def get_loss(args):
-   
+
     return UnFlowLoss(args)
 
 

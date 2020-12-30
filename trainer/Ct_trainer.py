@@ -20,7 +20,7 @@ class TrainFramework(BaseTrainer):
             img1, img2 = data
             vox_dim = img1[1][0]
             res = self.model(img1, img2)
-            
+
             img1 = img1[0].unsqueeze(1).float()  # Add channel dimension
             img2 = img2[0].unsqueeze(1).float()  # Add channel dimension
 
