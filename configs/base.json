@@ -1,0 +1,15 @@
+{
+    "batch_size": 64,
+    "num_workers": 4,
+    "test_batch_size": 1000,
+    "epochs": 14,
+    "lr": 0.0001,
+    "gamma": 0.7,
+    "no_cuda": false,
+    "dry_run": false,
+    "log_interval": 10,
+    "save_model": false,
+    "data_path": "./data/raw",
+    "pretrained_model": null,
+    "alpha": 10
+}
