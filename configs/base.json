@@ -11,5 +11,11 @@
     "save_model": false,
     "data_path": "./data/raw",
     "pretrained_model": null,
-    "alpha": 10
+    "alpha": 10,
+    "w_ternary": 1,
+    "w_l1": 1,
+    "w_ssim": 1,
+    "warp_pad": "border",
+    "w_scales": [1.0, 1.0, 1.0, 1.0, 0.0],
+    "w_sm_scales": [1.0, 0.0, 0.0, 0.0, 0.0]
 }

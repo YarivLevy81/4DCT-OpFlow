@@ -14,42 +14,21 @@ class UnFlowLoss(nn.modules.Module):
         super(UnFlowLoss, self).__init__()
         self.args = args
 
-    def forward(self, output, img1, img2, vox_dim):
-
-        pyramid_flows = output
-
-        pyarmid_smooth_losses = []
-
-        s = 1.
-        for i, flow in enumerate(pyramid_flows):
-            log(f'Aggregating loss of pyramid level {i+1}')
-            print(f'Aggregating loss of pyramid level {i+1}')
-
-            N, C, H, W, D = flow.size()
-
-            img1_scaled = F.interpolate(img1, (H, W, D), mode='area')
-            img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
-
-            flow12 = flow[:, :3]
-            print(
-                f'img1_scaled.size()={img1_scaled.size()}, flows12.size()={flow12.size()}')
-            # Not sure about flow extraction here
-            img1_recons = flow_warp(img1_scaled, flow12)
-
-            if i == 0:
-                s = min(H, W, D)
-
-            loss_smooth = self.loss_smooth(
-                flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
-            pyarmid_smooth_losses.append(loss_smooth)
-
-        loss_smooth = sum(pyarmid_smooth_losses)
-        loss_total = loss_smooth
-
-        return loss_total, loss_smooth
-
-    def loss_photometric(self, img1_scaled, img1_recons, occu_mask1):
+    
+    def loss_photometric(self, img1_scaled, img1_recons):
         loss = []
+
+        # Note: for now, no occlusion mask because we are in 3D
+        if self.args.w_l1 > 0:
+            loss += [self.args.w_l1 * (img1_scaled - img1_recons).abs()]
+
+        if self.args.w_ssim > 0:
+            loss += [self.args.w_ssim * SSIM(img1_recons, img1_scaled)]
+
+        if self.cfg.w_ternary > 0:
+            loss += [self.args.w_ternary * TernaryLoss(img1_recons, img1_scaled)]
+
+        return sum([l.mean() for l in loss]) 
 
     def loss_smooth(self, flow, img1_scaled, vox_dim):
         # if 'smooth_2nd' in self.cfg and self.cfg.smooth_2nd:
@@ -61,6 +40,53 @@ class UnFlowLoss(nn.modules.Module):
         loss = []
         loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
         return sum([l.mean() for l in loss])
+
+    def forward(self, output, img1, img2, vox_dim):
+
+        pyramid_flows = output
+
+        pyramid_warp_losses = []
+        pyramid_smooth_losses = []
+
+        s = 1.
+        for i, flow in enumerate(pyramid_flows):
+            log(f'Aggregating loss of pyramid level {i+1}')
+            log(f'Aggregating loss of pyramid level {i+1}')
+
+            N, C, H, W, D = flow.size()
+
+            img1_scaled = F.interpolate(img1, (H, W, D), mode='area')
+            # Only needed if we aggregate flow21 and dowing backward computation
+            # img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
+
+            flow12 = flow[:, :3]
+            log(f'img1_scaled.size()={img1_scaled.size()}, flows12.size()={flow12.size()}')
+            # Not sure about flow extraction here
+            img1_recons = flow_warp(img1_scaled, flow12)
+
+            if i == 0:
+                s = min(H, W, D)
+
+            loss_smooth = self.loss_smooth(
+                flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
+            loss_warp = self.loss_photomatric(img1_scaled, img1_recons)
+
+            log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}')
+            
+            pyramid_smooth_losses.append(loss_smooth)
+            pyramid_warp_losses.append(loss_warp)
+
+        pyramid_warp_losses = [l * w for l, w in
+                               zip(pyramid_warp_losses, self.args.w_scales)]
+        pyramid_smooth_losses = [l * w for l, w in
+                                 zip(pyramid_smooth_losses, self.args.w_sm_scales)]
+        log(f'Weighting losses')
+
+        loss_smooth = sum(pyramid_smooth_losses)
+        loss_warp = sum(pyramid_warp_losses)
+        loss_total = loss_smooth
+
+        return loss_total, loss_warp, loss_smooth
 
 
 # Crecit: https://github.com/simonmeister/UnFlow/blob/master/src/e2eflow/core/losses.py
