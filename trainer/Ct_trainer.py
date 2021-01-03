@@ -17,16 +17,17 @@ class TrainFramework(BaseTrainer):
 
         for i_step, data in enumerate(self.train_loader):
 
-            img1, img2 = data            
+            img1, img2 = data
+            vox_dim = img1[1][0]
             res = self.model(img1, img2)
-            
+
             img1 = img1[0].unsqueeze(1).float()  # Add channel dimension
             img2 = img2[0].unsqueeze(1).float()  # Add channel dimension
 
             self.optimizer.zero_grad()
-            loss = self.loss_func(res, img1, img2)
+            loss = self.loss_func(res, img1, img2, vox_dim)
 
-            print(f'Itearion {i_step + 1} of epoch {self.i_epoch + 1} - Loss = {loss}')
+            print(f'Iteration {i_step + 1} of epoch {self.i_epoch + 1} - Loss = {loss}')
             loss[0].backward()
             self.optimizer.step()
 

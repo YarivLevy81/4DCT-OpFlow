@@ -1,5 +1,5 @@
 import torch
-#from utils.torch_utils import init_seed
+# from utils.torch_utils import init_seed
 import argparse
 
 from data.dataset import get_dataset
@@ -13,7 +13,8 @@ if __name__ == '__main__':
                         help='input batch size for training (default: 64)')
     parser.add_argument('--num-workers', type=int, default=4, metavar='N',
                         help='number of workers (default: 4)')
-    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
+    parser.add_argument('--test-batch-size', type=int, default=1000,
+                        metavar='N',
                         help='input batch size for testing (default: 1000)')
     parser.add_argument('--epochs', type=int, default=14, metavar='N',
                         help='number of epochs to train (default: 14)')
@@ -54,7 +55,6 @@ if __name__ == '__main__':
     model = get_model(args)
     loss = get_loss(args)
     trainer = get_trainer()(
-        train_loader, valid_loader, model, loss, args 
-    )
+        train_loader, valid_loader, model, loss, args)
 
     trainer.train()

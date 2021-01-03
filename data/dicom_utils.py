@@ -17,6 +17,8 @@ import pydicom
 import numpy as np
 import matplotlib.pyplot as plt
 import glob
+import os
+
 
 
 def images_to_3dnump(dir_name, img_num, plot=False):
@@ -110,9 +112,39 @@ def convert_matrix_folder_to_4dnpz_file(
 
 def npz_to_ndarray_and_vox_dim(filename) -> np.ndarray:
     with np.load(filename) as npzfile:
-        mat4d = npzfile['data']
+        mat3d = npzfile['data']
         vox_dim = npzfile['vox_dim']
-        return mat4d,vox_dim
+        return mat3d,vox_dim
+
+def mat4d_to_mat3d_fold(mat4d,vox_dim,parent_dir_name,trgt_dir_name):
+    directory=parent_dir_name+'/'+trgt_dir_name
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    for i in range(mat4d.shape[0]):
+        mat3d=mat4d[i,:,:,:]
+        with open(directory + f'/mat_{i}_{mat3d.shape}.npz', 'wb') as outfile:
+            np.savez_compressed(outfile, data=mat3d, vox_dim=vox_dim)
+
+
+def mat4dfold_to_mat3dfolds(dir_name):
+    files=[]
+    for fname in glob.glob(dir_name+"*.npz", recursive=False):
+        #print("loading: {}".format(fname))
+        files.append(fname)
+    for file in files[47:]:
+        name=file.split("_")
+        fname=name[2]+'_'
+        if len(name)!=4:
+            for i in range(3,len(name)-1):
+                fname+=(name[i]+'_')
+        print(fname)
+        mat4d,vox_dim=npz_to_ndarray_and_vox_dim(file)
+        print("mat loaded")
+        mat4d_to_mat3d_fold(mat4d,vox_dim,dir_name,fname[:-1])
+
+        
+
+
 
 dir_folder_path = "/mnt/storage/datasets/4DCT/041516 New Cases/4/Anonymized - 4719590/Ctacor/CorVein_Bi 1.5 B25f MPR 0-95% Matrix 256 - 10/"
 target_path="/mnt/storage/datasets/4DCT/041516 New Cases/Nd_arrays/"
@@ -120,6 +152,7 @@ patient_num = "4"
 first_img_number = 9
 last_img_number = 28
 mats=[]
+#mat4dfold_to_mat3dfolds(target_path) 
 #mats.append(("21","/",7,26))
 #mats.append(("22","/",7,29))
 #mats.append(("24","/",11,29))

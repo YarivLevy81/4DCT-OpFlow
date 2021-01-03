@@ -15,7 +15,7 @@ class BaseTrainer:
         self.valid_loader = valid_loader
         self.device, self.device_ids = self._init_device()
         self.args = args
-        
+
         self.model = self._init_model(model)
         self.optimizer = self._get_optimizer()
         self.loss_func = loss_func
@@ -31,7 +31,7 @@ class BaseTrainer:
             if self.i_epoch % self.args.log_interval == 0:
                 error = self._validate()
                 print(f'Epoch {self.i_epoch}, Error={error}')
-                self.i_epoch += 1 
+                self.i_epoch += 1
 
     @abstractmethod
     def _run_one_epoch(self):
@@ -40,14 +40,14 @@ class BaseTrainer:
     @abstractmethod
     def _validate(self):
         ...
-    
+
     def _get_optimizer(self):
         param_groups = [
             {'params': bias_parameters(self.model),
-            #{'params': bias_parameters(self.model.module),
+            # {'params': bias_parameters(self.model.module),
              'weight_decay': 0},
             {'params': weight_parameters(self.model),
-            #{'params': weight_parameters(self.model.module),
+            # {'params': weight_parameters(self.model.module),
              'weight_decay': 1e-6}]
 
         return torch.optim.Adam(param_groups, self.args.lr, 
@@ -66,7 +66,7 @@ class BaseTrainer:
                 new_weights[a] = weights[b]
             weights = new_weights
             model.load_state_dict(weights)
-        
+
         else:
             print("=> Train from scratch")
             model.init_weights()
@@ -76,7 +76,6 @@ class BaseTrainer:
             model = torch.nn.DataParallel(model, device_ids=self.device_ids)
 
         return model
-
 
     def _init_device(self):
         # TODO: implement with cuda also
