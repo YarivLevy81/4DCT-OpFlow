@@ -61,6 +61,7 @@ class UnFlowLoss(nn.modules.Module):
         return sum([l.mean() for l in loss])
 
 
+# Crecit: https://github.com/simonmeister/UnFlow/blob/master/src/e2eflow/core/losses.py
 def TernaryLoss(im, im_warp, max_distance=1):
     patch_size = 2 * max_distance + 1
 
@@ -71,11 +72,12 @@ def TernaryLoss(im, im_warp, max_distance=1):
         return grayscale.unsqueeze(1)
 
     def _ternary_transform(image):
-        intensities = _rgb_to_grayscale(image) * 255
+        # intensities = _rgb_to_grayscale(image) * 255
+        intensities = image # Should be a normalized grayscale
         out_channels = patch_size * patch_size
         w = torch.eye(out_channels).view((out_channels, 1, patch_size, patch_size))
         weights = w.type_as(im)
-        patches = F.conv2d(intensities, weights, padding=max_distance)
+        patches = F.conv3d(intensities, weights, padding=max_distance)
         transf = patches - intensities
         transf_norm = transf / torch.sqrt(0.81 + torch.pow(transf, 2))
         return transf_norm
@@ -87,8 +89,8 @@ def TernaryLoss(im, im_warp, max_distance=1):
         return dist_mean
 
     def _valid_mask(t, padding):
-        n, _, h, w = t.size()
-        inner = torch.ones(n, 1, h - 2 * padding, w - 2 * padding).type_as(t)
+        N, C, H, W, D  = t.size()
+        inner = torch.ones(N, 1, H - 2 * padding, W - 2 * padding, D - 2 * padding).type_as(t)
         mask = F.pad(inner, [padding] * 4)
         return mask
 
@@ -157,3 +159,27 @@ def smooth_grad_2nd(flo, image, alpha):
     loss_y = weights_y[:, :, 1:, :] * dy2.abs()
 
     return loss_x.mean() / 2. + loss_y.mean() / 2.
+
+# From https://github.com/jinh0park/pytorch-ssim-3D
+def _ssim_3D(img1, img2, window, window_size, channel, size_average = True):
+    mu1 = F.conv3d(img1, window, padding = window_size//2, groups = channel)
+    mu2 = F.conv3d(img2, window, padding = window_size//2, groups = channel)
+
+    mu1_sq = mu1.pow(2)
+    mu2_sq = mu2.pow(2)
+
+    mu1_mu2 = mu1*mu2
+
+    sigma1_sq = F.conv3d(img1*img1, window, padding = window_size//2, groups = channel) - mu1_sq
+    sigma2_sq = F.conv3d(img2*img2, window, padding = window_size//2, groups = channel) - mu2_sq
+    sigma12 = F.conv3d(img1*img2, window, padding = window_size//2, groups = channel) - mu1_mu2
+
+    C1 = 0.01**2
+    C2 = 0.03**2
+
+    ssim_map = ((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*(sigma1_sq + sigma2_sq + C2))
+
+    if size_average:
+        return ssim_map.mean()
+    else:
+        return ssim_map.mean(1).mean(1).mean(1)
