@@ -14,7 +14,6 @@ class UnFlowLoss(nn.modules.Module):
         super(UnFlowLoss, self).__init__()
         self.args = args
 
-    
     def loss_photometric(self, img1_scaled, img1_recons):
         loss = []
 
@@ -25,7 +24,7 @@ class UnFlowLoss(nn.modules.Module):
         if self.args.w_ssim > 0:
             loss += [self.args.w_ssim * SSIM(img1_recons, img1_scaled)]
 
-        if self.cfg.w_ternary > 0:
+        if self.args.w_ternary > 0:
             loss += [self.args.w_ternary * TernaryLoss(img1_recons, img1_scaled)]
 
         return sum([l.mean() for l in loss]) 
@@ -42,6 +41,7 @@ class UnFlowLoss(nn.modules.Module):
         return sum([l.mean() for l in loss])
 
     def forward(self, output, img1, img2, vox_dim):
+        log("Computing loss")
 
         pyramid_flows = output
 
@@ -69,7 +69,7 @@ class UnFlowLoss(nn.modules.Module):
 
             loss_smooth = self.loss_smooth(
                 flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
-            loss_warp = self.loss_photomatric(img1_scaled, img1_recons)
+            loss_warp = self.loss_photometric(img1_scaled, img1_recons)
 
             log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}')
             
@@ -90,7 +90,7 @@ class UnFlowLoss(nn.modules.Module):
 
 
 # Crecit: https://github.com/simonmeister/UnFlow/blob/master/src/e2eflow/core/losses.py
-def TernaryLoss(im, im_warp, max_distance=1):
+def TernaryLoss(img, img_warp, max_distance=1):
     patch_size = 2 * max_distance + 1
 
     def _rgb_to_grayscale(image):
@@ -100,13 +100,22 @@ def TernaryLoss(im, im_warp, max_distance=1):
         return grayscale.unsqueeze(1)
 
     def _ternary_transform(image):
+        log(f'Image size={image.size()}')
         # intensities = _rgb_to_grayscale(image) * 255
-        intensities = image # Should be a normalized grayscale
-        out_channels = patch_size * patch_size
-        w = torch.eye(out_channels).view(
-            (out_channels, 1, patch_size, patch_size))
-        weights = w.type_as(im)
+        intensities = image  # Should be a normalized grayscale
+        out_channels = patch_size * patch_size * patch_size
+        
+        w = torch.eye(patch_size) # Identity 2D-tensor of size out_channels
+        w = w.repeat(out_channels,1,patch_size,1,1) # make it 5D by stacking
+        log(f'size={w.size()}')
+        
+        #w = torch.eye(out_channels).view(
+        #    (out_channels, 1, patch_size, patch_size, patch_size))
+        weights = w.type_as(img)
+        log(f'weights size={weights.size()}')
+        #patches = F.conv3d(intensities, weights, padding=max_distance, stride=1)
         patches = F.conv3d(intensities, weights, padding=max_distance)
+        log(f'patches size={patches.size()}')
         transf = patches - intensities
         transf_norm = transf / torch.sqrt(0.81 + torch.pow(transf, 2))
         return transf_norm
@@ -120,31 +129,34 @@ def TernaryLoss(im, im_warp, max_distance=1):
     def _valid_mask(t, padding):
         N, C, H, W, D  = t.size()
         inner = torch.ones(N, 1, H - 2 * padding, W - 2 * padding, D - 2 * padding).type_as(t)
-        mask = F.pad(inner, [padding] * 4)
+        mask = F.pad(inner, [padding] * 8)
         return mask
 
-    t1 = _ternary_transform(im)
-    t2 = _ternary_transform(im_warp)
+    t1 = _ternary_transform(img)
+    t2 = _ternary_transform(img_warp)
     dist = _hamming_distance(t1, t2)
-    mask = _valid_mask(im, max_distance)
+    log(f'dist size={dist.size()}')
+    mask = _valid_mask(img, max_distance)
+    log(f'mask size={mask.size()}')
 
     return dist * mask
 
 
 def SSIM(x, y, md=1):
+    log(f'Running SSIM with x={x}, y={y}')
     patch_size = 2 * md + 1
     C1 = 0.01 ** 2
     C2 = 0.03 ** 2
 
-    mu_x = nn.AvgPool2d(patch_size, 1, 0)(x)
-    mu_y = nn.AvgPool2d(patch_size, 1, 0)(y)
+    mu_x = nn.AvgPool3d(patch_size, 1, 0)(x)
+    mu_y = nn.AvgPool3d(patch_size, 1, 0)(y)
     mu_x_mu_y = mu_x * mu_y
     mu_x_sq = mu_x.pow(2)
     mu_y_sq = mu_y.pow(2)
 
-    sigma_x = nn.AvgPool2d(patch_size, 1, 0)(x * x) - mu_x_sq
-    sigma_y = nn.AvgPool2d(patch_size, 1, 0)(y * y) - mu_y_sq
-    sigma_xy = nn.AvgPool2d(patch_size, 1, 0)(x * y) - mu_x_mu_y
+    sigma_x = nn.AvgPool3d(patch_size, 1, 0)(x * x) - mu_x_sq
+    sigma_y = nn.AvgPool3d(patch_size, 1, 0)(y * y) - mu_y_sq
+    sigma_xy = nn.AvgPool3d(patch_size, 1, 0)(x * y) - mu_x_mu_y
 
     SSIM_n = (2 * mu_x_mu_y + C1) * (2 * sigma_xy + C2)
     SSIM_d = (mu_x_sq + mu_y_sq + C1) * (sigma_x + sigma_y + C2)

@@ -8,13 +8,16 @@ from losses.flow_loss import get_loss
 from trainer.get_trainer import get_trainer
 import json
 from easydict import EasyDict
+from utils.misc import VERBOSE
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='4DCT Optical Flow Net')
-    parser.add_argument('-c', '--config', default='configs/base.json') 
+    parser.add_argument('-c', '--config', default='configs/base.json', help="Path (absolute or relative) for 4DCT data")
+    parser.add_argument('-v', '--verbose', action='store_true', help="Verbose logs") 
     args = parser.parse_args()
 
+    VERBOSE = args.verbose
     with open(args.config) as f:
         args = EasyDict(json.load(f))
     print(f'<<<<< Init experiement >>>>>')
