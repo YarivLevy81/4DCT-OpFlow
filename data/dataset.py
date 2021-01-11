@@ -3,6 +3,7 @@ from scipy.ndimage import zoom
 import pathlib
 from torch.utils.data import Dataset
 from .dicom_utils import npz_to_ndarray_and_vox_dim as file_processor
+from .data_augmentor import augmentor
 
 
 class CT_4DDataset(Dataset):
@@ -40,7 +41,9 @@ class CT_4DDataset(Dataset):
         img2 = img2 / 4196
         # img1 = zoom(img1, (0.25, 0.25, 0.25))
         # img2 = zoom(img2, (0.25, 0.25, 0.25))
-        return (img1, vox_dim1), (img2, vox_dim2)
+        p1, p2 = augmentor(img1, img2, vox_dim1)
+        # return (img1,vox_dim1),(img2,vox_dim2)
+        return p1, p2
 
     def collect_samples(self):
         for entry in self.root.iterdir():
