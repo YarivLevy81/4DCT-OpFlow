@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='4DCT Optical Flow Net')
     parser.add_argument('-c', '--config', default='configs/base.json', help="Path (absolute or relative) for 4DCT data")
     parser.add_argument('-v', '--verbose', action='store_true', help="Verbose logs") 
+    parser.add_argument('-p', '--plot', action='store_true', help="Plot samples along training") 
     args = parser.parse_args()
 
     VERBOSE = args.verbose
