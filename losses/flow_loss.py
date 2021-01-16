@@ -84,7 +84,7 @@ class UnFlowLoss(nn.modules.Module):
 
         loss_smooth = sum(pyramid_smooth_losses)
         loss_warp = sum(pyramid_warp_losses)
-        loss_total = loss_smooth
+        loss_total = loss_smooth + loss_warp
 
         return loss_total, loss_warp, loss_smooth
 
