@@ -5,8 +5,6 @@ import torch.nn.functional as F
 from utils.warp_utils import flow_warp
 from utils.misc import log
 
-# from .correlation_package.correlation import Correlation
-
 
 def get_model(args):
     model = PWC3d_Lite(args)
@@ -92,6 +90,7 @@ class PWC3d_Lite(nn.Module):
         # init
         flows = []
         N, C, H, W, D = x1_p[0].size()
+        print(f'Got batch of size {N}')
         init_dtype = x1_p[0].dtype
         init_device = x1_p[0].device
         flow = torch.zeros(N, 3, H, W, D, dtype=init_dtype, device=init_device).float()
