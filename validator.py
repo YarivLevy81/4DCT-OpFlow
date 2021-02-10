@@ -2,6 +2,7 @@ import torchio as tio
 import numpy as np
 from data.dataset import get_dataset
 import torch
+import SimpleITK as sitk
 
 
 class Validator(object):
@@ -14,7 +15,7 @@ class Validator(object):
         rescale = tio.RescaleIntensity((0, 1))
         crop_or_pad = tio.CropOrPad(target_shape=(256, 256, 128), )
         transformer = tio.RandomElasticDeformation()
-        pipe = tio.Compose([rescale, crop_or_pad, transformer])
+        pipe = tio.Compose([rescale, transformer])
 
         _transformed = pipe(subject)
         _transformation_data = _transformed.history
@@ -22,7 +23,6 @@ class Validator(object):
 
 
 def analyze_coor(coor):
-
     print(control_points.shape)
     u = control_points[..., 0].T
     v = control_points[..., 1].T
@@ -46,18 +46,34 @@ def analyze_coor(coor):
         print(f'Point -> {points[i]}: u -> {u[i]}, v -> {v[i]}, w -> {w[i]}')
 
 
+def create_synt_data(shape=(128, 128, 64)):
+    res = np.ones(shape) * .9
+    cpts = 7
+    xy = [i * 18 + 9 for i in range(cpts)]
+    xz = [i * 9 + 4 for i in range(cpts)]
+    for i in xy:
+        for j in xy:
+            for k in xz:
+                res[i:i+1, :, :] = 0.05
+                res[:, :,k:k+1] = 0.05
+                res[:, j:j+1, :] = 0.05
+
+    return res
+
+
 if __name__ == '__main__':
     validator = Validator()
-    img = validator.dataset[0]
-    data = img[0][0][np.newaxis]
-    vox = img[0][1]
+    # img = validator.dataset[0]
+    img = create_synt_data()
+    data = img[np.newaxis]
+    vox = (1, 1, 1)
 
     tim = tio.Image(tensor=data, spacing=vox)
     subj = tio.Subject({'img': tim})
 
     transformed, transformation_data = validator.make_validation_sample(subj)
-    # transformed.plot()
-    # subj.plot()
+    transformed.plot()
+    subj.plot()
 
     # check data
     print(torch.all(transformed['img'].data.eq(subj['img'].data)))
@@ -71,6 +87,13 @@ if __name__ == '__main__':
 
     itk_transform = t.get_bspline_transform(subj['img'].as_sitk(), control_points)
     x, y, z = itk_transform.GetCoefficientImages()
-
+    displ = sitk.TransformToDisplacementField(itk_transform,
+                                              sitk.sitkVectorFloat64,
+                                              x.GetSize(),
+                                              x.GetOrigin(),
+                                              x.GetSpacing(),
+                                              x.GetDirection())
+    vectors = sitk.GetArrayFromImage(displ)
+    print(f'image size:{x.GetSize()}, direction:{x.GetDirection()}, spacing:{x.GetSpacing()}, origin:{x.GetOrigin()}')
     print(f'>>>>> Analyzing \n')
     analyze_coor(x)
