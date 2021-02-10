@@ -94,8 +94,10 @@ if __name__ == '__main__':
                                               tim_itk.GetOrigin(),
                                               tim_itk.GetSpacing(),
                                               tim_itk.GetDirection())
-    vectors = sitk.GetArrayFromImage(displ)
+    vectors = sitk.GetArrayFromImage(displ).T
+
+
     print(f'image size:{displ.GetSize()}, direction:{displ.GetDirection()}, spacing:{displ.GetSpacing()}, origin:{displ.GetOrigin()}')
     print(vectors)
-    print(f'>>>>> Analyzing \n')
-    analyze_coor(x)
+    #print(f'>>>>> Analyzing \n')
+    #analyze_coor(x)
