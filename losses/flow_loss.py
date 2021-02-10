@@ -165,7 +165,7 @@ def SSIM(x, y, md=1):
     return dist
 
 
-def gradient(data, vox_dims=[1, 1, 1]):
+def gradient(data, vox_dims=(1, 1, 1)):
     D_dy = (data[:, :, 1:] - data[:, :, :-1])/vox_dims[1]
     D_dx = (data[:, :, :, 1:] - data[:, :, :, :-1])/vox_dims[0]
     D_dz = (data[:, :, :, :, 1:] - data[:, :, :, :, :-1])/vox_dims[2]
