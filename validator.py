@@ -72,7 +72,7 @@ if __name__ == '__main__':
     validator = Validator()
     if args.synthetic:
         img = create_synt_data()
-        data = img[np.newaxis]
+        data = torch.from_numpy(img[np.newaxis])
         vox = (1, 1, 1)
     else:
         img = validator.dataset[0]
@@ -99,7 +99,11 @@ if __name__ == '__main__':
                                               tim_itk.GetSpacing(),
                                               tim_itk.GetDirection())
 
+    transformed_img = transformed.get_images()
+    aug_im1 = transformed_img[0].data
     vectors = sitk.GetArrayFromImage(displ).T
-    v_as_torch = torch.from_numpy(vectors).unsqueeze(0).float()
-    transformed_recons = flow_warp(data, vectors)
+    v_as_torch = torch.from_numpy(vectors*(-1)).unsqueeze(0).float()
+    transformed_recons = flow_warp(data.unsqueeze(0).float(), v_as_torch,mode='nearest')
+    #plot_image(aug_im1)
+    #transformed_recons = flow_warp(aug_im1.unsqueeze(0).float(), v_as_torch)
     plot_image(transformed_recons)

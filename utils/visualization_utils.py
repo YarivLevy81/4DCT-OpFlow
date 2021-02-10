@@ -11,6 +11,8 @@ def plot_image(
     fig = None
     if axes is None:
         fig, axes = plt.subplots(1, 3)
+    while len(data.shape)>3:
+        data=data.squeeze(0)
     indices = np.array(data.shape) // 2
     i, j, k = indices
     slice_x = rotate(data[i, :, :])
