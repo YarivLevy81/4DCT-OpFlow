@@ -23,11 +23,29 @@ class UnFlowLoss(nn.modules.Module):
 
         if self.args.w_ssim > 0:
             loss += [self.args.w_ssim * SSIM(img1_recons, img1_scaled)]
+            '''
+            windows_size = 11
+            (_, channel, _, _, _) = img1_scaled.size()
+            size_average = True
+            loss += [self.args.w_ssim * _ssim_3D(
+                img1_recons,
+                img1_scaled,
+                window=create_window_3D(window_size=windows_size, channel=channel),
+                window_size=windows_size,
+                channel=channel,
+                size_average=size_average
+            )]
+            '''
 
         if self.args.w_ternary > 0:
             loss += [self.args.w_ternary * TernaryLoss(img1_recons, img1_scaled)]
 
-        return sum([l.mean() for l in loss]) 
+        loss_val = 0
+        for l in loss:
+            mean = l.mean()
+            print(f'Loss -> {mean}')
+            loss_val += mean
+        return loss_val
 
     def loss_smooth(self, flow, img1_scaled, vox_dim):
         # if 'smooth_2nd' in self.cfg and self.cfg.smooth_2nd:
@@ -206,8 +224,14 @@ def smooth_grad_2nd(flo, image, alpha):
 
     return loss_x.mean() / 2. + loss_y.mean() / 2.
 
+
 # From https://github.com/jinh0park/pytorch-ssim-3D
+from torch.autograd import Variable
+from math import exp
+
+
 def _ssim_3D(img1, img2, window, window_size, channel, size_average = True):
+    print(f'_ssim_3D 1')
     mu1 = F.conv3d(img1, window, padding = window_size//2, groups = channel)
     mu2 = F.conv3d(img2, window, padding = window_size//2, groups = channel)
 
@@ -216,16 +240,39 @@ def _ssim_3D(img1, img2, window, window_size, channel, size_average = True):
 
     mu1_mu2 = mu1*mu2
 
+    print(f'_ssim_3D 2')
     sigma1_sq = F.conv3d(img1*img1, window, padding = window_size//2, groups = channel) - mu1_sq
+    print(f'_ssim_3D 2.1')
     sigma2_sq = F.conv3d(img2*img2, window, padding = window_size//2, groups = channel) - mu2_sq
+    print(f'_ssim_3D 2.2')
     sigma12 = F.conv3d(img1*img2, window, padding = window_size//2, groups = channel) - mu1_mu2
+    print(f'_ssim_3D 2.3')
 
     C1 = 0.01**2
     C2 = 0.03**2
 
+    print(f'_ssim_3D 3')
     ssim_map = ((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*(sigma1_sq + sigma2_sq + C2))
 
+    print(f'_ssim_3D 4')
     if size_average:
         return ssim_map.mean()
     else:
         return ssim_map.mean(1).mean(1).mean(1)
+
+
+def gaussian(window_size, sigma):
+    print(f'gaussian 1')
+    gauss = torch.Tensor([exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
+    print(f'gaussian 2')
+    return gauss/gauss.sum()
+
+
+def create_window_3D(window_size, channel):
+    print(f'create_window_3D 1')
+    _1D_window = gaussian(window_size, 1.5).unsqueeze(1)
+    _2D_window = _1D_window.mm(_1D_window.t())
+    _3D_window = _1D_window.mm(_2D_window.reshape(1, -1)).reshape(window_size, window_size, window_size).float().unsqueeze(0).unsqueeze(0)
+    window = Variable(_3D_window.expand(channel, 1, window_size, window_size, window_size).contiguous())
+    print(f'create_window_3D 2')
+    return window

@@ -34,11 +34,18 @@ class TrainFramework(BaseTrainer):
 
             print(f'Iteration {i_step + 1} of epoch {self.i_epoch + 1}')
             print(f'Info = {key_meters}')
-            scaled_loss = 1024. * loss # That's what they do in ARFlow
-            scaled_loss.backward()
+            #loss = 1024. * loss  # That's what they do in ARFlow
+            loss.backward()
 
+            required_grad_params = [p for p in self.model.parameters() if p.requires_grad]
+            mean_grad_norm = 0
             for param in [p for p in self.model.parameters() if p.requires_grad]:
-                param.grad.data.mul_(1. / 1024)
+                mean_grad_norm += param.grad.data.mean()
+                #param.grad.data.mul_(1. / 1024)
+            print(f'Gradient data: len(requires_grad_params): {len(required_grad_params)}, '
+                  f'mean_gard_norm={mean_grad_norm/len(required_grad_params)}, '
+                  f'model_params={self.model.parameters(True)}'
+                  f'num_params={sum(p.numel() for p in self.model.parameters() if p.requires_grad)}')
 
             self.optimizer.step()
 

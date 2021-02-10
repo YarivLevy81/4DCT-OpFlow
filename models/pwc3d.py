@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import torchio as tio
 from utils.warp_utils import flow_warp
 from utils.misc import log
 
@@ -60,23 +60,26 @@ class PWC3d_Lite(nn.Module):
         return sum(
             [p.data.nelement() if p.requires_grad else 0 for p in self.parameters()])
 
-    def init_weights(self):
-        for layer in self.named_modules():
-            if isinstance(layer, nn.Conv3d):
-                nn.init.kaiming_normal_(layer.weight)
-                if layer.bias is not None:
-                    nn.init.constant_(layer.bias, 0)
+    def init_weights(self, layer):
+        if isinstance(layer, nn.Conv3d):
+            print(f'Visit nn.Conv3d')
+            nn.init.kaiming_normal_(layer.weight)
+            if layer.bias is not None:
+                nn.init.constant_(layer.bias, 0)
 
-            elif isinstance(layer, nn.ConvTranspose3d):
-                nn.init.kaiming_normal_(layer.weight)
-                if layer.bias is not None:
-                    nn.init.constant_(layer.bias, 0)
+        elif isinstance(layer, nn.ConvTranspose3d):
+            print(f'Visit nn.ConvTranspose3d')
+            nn.init.kaiming_normal_(layer.weight)
+            if layer.bias is not None:
+                nn.init.constant_(layer.bias, 0)
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
 
         x1_voxdim = x1[1]
+        # tio.Image(tensor=x1[0], spacing=x1_voxdim).plot()
         x1 = x1[0].unsqueeze(1).float()  # Add channel dimension
         x2_voxdim = x2[1]
+        # tio.Image(tensor=x2[0], spacing=x1_voxdim).plot()
         x2 = x2[0].unsqueeze(1).float()
 
         log(x1.size())

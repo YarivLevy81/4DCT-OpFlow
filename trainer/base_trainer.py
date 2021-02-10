@@ -17,6 +17,7 @@ class BaseTrainer:
         self.args = args
 
         self.model = self._init_model(model)
+        self.model.apply(self.model.init_weights)
         self.optimizer = self._get_optimizer()
         self.loss_func = loss_func
 
@@ -69,7 +70,6 @@ class BaseTrainer:
 
         else:
             print("=> Train from scratch")
-            model.init_weights()
 
         if torch.cuda.device_count() > 1 and self.device != torch.device('cpu'):
             print(f'Data parlelling the model')
