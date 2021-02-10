@@ -3,6 +3,8 @@ import numpy as np
 from data.dataset import get_dataset
 import torch
 import SimpleITK as sitk
+from utils.warp_utils import flow_warp
+from utils.visualization_utils import plot_image
 
 
 class Validator(object):
@@ -64,7 +66,7 @@ def create_synt_data(shape=(128, 128, 64)):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Validator of 4DCT-Net')
-    parser.add_argument('-s', '--synthetic', action='store_true', help="Wether to use Synthethic or real data")
+    parser.add_argument('-s', '--synthetic', action='store_true', help="Whether to use synthetic or real data")
     args = parser.parse_args()
 
     validator = Validator()
@@ -98,3 +100,6 @@ if __name__ == '__main__':
                                               tim_itk.GetDirection())
 
     vectors = sitk.GetArrayFromImage(displ).T
+    v_as_torch = torch.from_numpy(vectors).unsqueeze(0).float()
+    transformed_recons = flow_warp(data, vectors)
+    plot_image(transformed_recons)
