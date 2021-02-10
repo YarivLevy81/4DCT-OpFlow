@@ -62,11 +62,20 @@ def create_synt_data(shape=(128, 128, 64)):
 
 
 if __name__ == '__main__':
-    validator = Validator()
-    # img = validator.dataset[0]
-    img = create_synt_data()
-    data = img[np.newaxis]
-    vox = (1, 1, 1)
+    import argparse
+    parser = argparse.ArgumentParser(description='Validator of 4DCT-Net')
+    parser.add_argument('-s', '--synthetic', action='store_true', help="Wether to use Synthethic or real data")
+    args = parser.parse_args()
+
+    if args.synthetic:
+        img = create_synt_data()
+        data = img[np.newaxis]
+        vox = (1, 1, 1)
+    else:
+        validator = Validator()
+        img = validator.dataset[0]
+        data = img[0][0][np.newaxis]
+        vox = img[0][1]
 
     tim = tio.Image(tensor=data, spacing=vox)
     tim_itk = tim.as_sitk()
@@ -76,14 +85,7 @@ if __name__ == '__main__':
     transformed.plot()
     subj.plot()
 
-    # check data
-    print(torch.all(transformed['img'].data.eq(subj['img'].data)))
-    a = transformed['img'].numpy()
-    print((a >= 0).all() and (a <= 1).all())
-
-    # Continue
     t = transformation_data[-1]
-
     control_points = t.control_points
 
     itk_transform = t.get_bspline_transform(subj['img'].as_sitk(), control_points)
@@ -94,10 +96,5 @@ if __name__ == '__main__':
                                               tim_itk.GetOrigin(),
                                               tim_itk.GetSpacing(),
                                               tim_itk.GetDirection())
+
     vectors = sitk.GetArrayFromImage(displ).T
-
-
-    print(f'image size:{displ.GetSize()}, direction:{displ.GetDirection()}, spacing:{displ.GetSpacing()}, origin:{displ.GetOrigin()}')
-    print(vectors)
-    #print(f'>>>>> Analyzing \n')
-    #analyze_coor(x)
