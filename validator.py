@@ -69,6 +69,7 @@ if __name__ == '__main__':
     vox = (1, 1, 1)
 
     tim = tio.Image(tensor=data, spacing=vox)
+    tim_itk = tim.as_sitk()
     subj = tio.Subject({'img': tim})
 
     transformed, transformation_data = validator.make_validation_sample(subj)
@@ -89,11 +90,12 @@ if __name__ == '__main__':
     x, y, z = itk_transform.GetCoefficientImages()
     displ = sitk.TransformToDisplacementField(itk_transform,
                                               sitk.sitkVectorFloat64,
-                                              x.GetSize(),
-                                              x.GetOrigin(),
-                                              x.GetSpacing(),
-                                              x.GetDirection())
+                                              tim_itk.GetSize(),
+                                              tim_itk.GetOrigin(),
+                                              tim_itk.GetSpacing(),
+                                              tim_itk.GetDirection())
     vectors = sitk.GetArrayFromImage(displ)
-    print(f'image size:{x.GetSize()}, direction:{x.GetDirection()}, spacing:{x.GetSpacing()}, origin:{x.GetOrigin()}')
+    print(f'image size:{displ.GetSize()}, direction:{displ.GetDirection()}, spacing:{displ.GetSpacing()}, origin:{displ.GetOrigin()}')
+    print(vectors)
     print(f'>>>>> Analyzing \n')
     analyze_coor(x)
