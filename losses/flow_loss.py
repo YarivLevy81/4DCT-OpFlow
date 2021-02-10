@@ -57,18 +57,18 @@ class UnFlowLoss(nn.modules.Module):
 
             img1_scaled = F.interpolate(img1, (H, W, D), mode='area')
             # Only needed if we aggregate flow21 and dowing backward computation
-            # img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
+            img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
 
-            flow12 = flow[:, :3]
-            log(f'img1_scaled.size()={img1_scaled.size()}, flows12.size()={flow12.size()}')
+            flow21 = flow[:, :3]
+            log(f'img1_scaled.size()={img1_scaled.size()}, flows12.size()={flow21.size()}')
             # Not sure about flow extraction here
-            img1_recons = flow_warp(img1_scaled, flow12)
+            img1_recons = flow_warp(img2_scaled, flow21)
 
             if i == 0:
                 s = min(H, W, D)
 
             loss_smooth = self.loss_smooth(
-                flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
+                flow=flow21 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_warp = self.loss_photometric(img1_scaled, img1_recons)
 
             log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}')
