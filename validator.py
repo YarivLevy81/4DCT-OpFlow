@@ -67,12 +67,12 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--synthetic', action='store_true', help="Wether to use Synthethic or real data")
     args = parser.parse_args()
 
+    validator = Validator()
     if args.synthetic:
         img = create_synt_data()
         data = img[np.newaxis]
         vox = (1, 1, 1)
     else:
-        validator = Validator()
         img = validator.dataset[0]
         data = img[0][0][np.newaxis]
         vox = img[0][1]
