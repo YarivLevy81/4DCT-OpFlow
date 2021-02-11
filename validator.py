@@ -4,7 +4,7 @@ from data.dataset import get_dataset
 import torch
 import SimpleITK as sitk
 from utils.warp_utils import flow_warp
-from utils.visualization_utils import plot_image
+from utils.visualization_utils import plot_image,plot_flow
 
 
 class Validator(object):
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     # plot_image(aug_im1)
     # transformed_recons = flow_warp(aug_im1.unsqueeze(0).float(), v_as_torch)
     plot_image(transformed_recons)
-    # print("looking in original")
+    plot_flow(v_as_torch)
     # find_zer_coors(data.unsqueeze(0).float())
     # print('looking in transformed')
     # find_zer_coors(transformed_recons)
