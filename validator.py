@@ -4,13 +4,13 @@ from data.dataset import get_dataset
 import torch
 import SimpleITK as sitk
 from utils.warp_utils import flow_warp
-from utils.visualization_utils import plot_image
+from utils.visualization_utils import plot_image,plot_flow
 
 
 class Validator(object):
 
     def __init__(self):
-        self.dataset = get_dataset(root="./data/raw")
+        self.dataset = get_dataset(root="./data/raw", w_aug=False)
 
     @staticmethod
     def make_validation_sample(subject):
@@ -51,20 +51,33 @@ def analyze_coor(coor):
 def create_synt_data(shape=(128, 128, 64)):
     res = np.ones(shape) * .9
     cpts = 7
-    xy = [i * 18 + 9 for i in range(cpts)]
-    xz = [i * 9 + 4 for i in range(cpts)]
-    for i in xy:
-        for j in xy:
+    y = [i * 18 + 9 for i in range(cpts)]
+    x = [i * 9 + 4 for i in range(cpts * 2)]
+    xz = [i * 7 + 3 for i in range(cpts + 2)]
+    for i in x:
+        for j in y:
             for k in xz:
-                res[i:i+1, :, :] = 0.05
-                res[:, :,k:k+1] = 0.05
-                res[:, j:j+1, :] = 0.05
+                if i % 2 == 0:
+                    res[i - 2:i + 2, :, :] = 0.05
+                else:
+                    res[i:i + 1, :, :] = 0.05
+                res[:, :, k:k + 1] = 0.05
+                res[:, j:j + 1, :] = 0.05
 
     return res
 
 
+def find_zer_coors(img):
+    H = W = 128
+    D = 64
+    for i in range(H):
+        for j in range(W):
+            for k in range(D):
+                if img[0, 0, i, j, k] <= 0.3:
+                    print(f'({i},{j},{k})')
 if __name__ == '__main__':
     import argparse
+
     parser = argparse.ArgumentParser(description='Validator of 4DCT-Net')
     parser.add_argument('-s', '--synthetic', action='store_true', help="Whether to use synthetic or real data")
     args = parser.parse_args()
@@ -84,8 +97,8 @@ if __name__ == '__main__':
     subj = tio.Subject({'img': tim})
 
     transformed, transformation_data = validator.make_validation_sample(subj)
-    transformed.plot()
     subj.plot()
+    transformed.plot()
 
     t = transformation_data[-1]
     control_points = t.control_points
@@ -102,8 +115,19 @@ if __name__ == '__main__':
     transformed_img = transformed.get_images()
     aug_im1 = transformed_img[0].data
     vectors = sitk.GetArrayFromImage(displ).T
-    v_as_torch = torch.from_numpy(vectors*(-1)).unsqueeze(0).float()
-    transformed_recons = flow_warp(data.unsqueeze(0).float(), v_as_torch,mode='nearest')
-    #plot_image(aug_im1)
-    #transformed_recons = flow_warp(aug_im1.unsqueeze(0).float(), v_as_torch)
+    vectors[2,:,:,:]*=(-1)
+    # vectors = np.zeros(vectors.shape) * 2
+    # vectors[2,:,:,:]=2
+    v_as_torch = torch.from_numpy(vectors).unsqueeze(0).float()
+    transformed_recons = flow_warp(data.unsqueeze(0).float(), v_as_torch)
+    # plot_image(aug_im1)
+    # transformed_recons = flow_warp(aug_im1.unsqueeze(0).float(), v_as_torch)
     plot_image(transformed_recons)
+    plot_flow(v_as_torch)
+    # find_zer_coors(data.unsqueeze(0).float())
+    # print('looking in transformed')
+    # find_zer_coors(transformed_recons)
+
+    # tim = tio.Image(tensor=transformed_recons.squeeze(0), spacing=vox)
+    # subj = tio.Subject({'img': tim})
+    # subj.plot()
