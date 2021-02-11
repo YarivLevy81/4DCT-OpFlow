@@ -95,9 +95,9 @@ class PWC3d_Lite(nn.Module):
         print(f'Got batch of size {N}')
         init_dtype = x1_p[0].dtype
         init_device = x1_p[0].device
-        flow = torch.zeros(N, 3, H, W, D, dtype=init_dtype, device=init_device).float()
+        flow21 = torch.zeros(N, 3, H, W, D, dtype=init_dtype, device=init_device).float()
 
-        log(flow.size())
+        log(flow21.size())
         log(f'forward init complete')
 
         for l, (_x1, _x2) in enumerate(zip(x1_p, x2_p)):
@@ -106,9 +106,9 @@ class PWC3d_Lite(nn.Module):
             if l == 0:
                 x2_warp = _x2
             else:
-                flow = F.interpolate(flow * 2, scale_factor=2,
+                flow21 = F.interpolate(flow21 * 2, scale_factor=2,
                                      mode='trilinear', align_corners=True)
-                x2_warp = flow_warp(_x2, flow)
+                x2_warp = flow_warp(_x2, flow21)
 
             # correlation
             out_corr = self.corr(_x1, x2_warp)
@@ -116,19 +116,19 @@ class PWC3d_Lite(nn.Module):
 
             # concat and estimate flow
             x1_1by1 = self.conv_1x1[l](_x1)
-            log(f'Sizes - x1={x1.size()}, x2={x2.size()}, x1_1b1y={x1_1by1.size()}, out_corr_relu = {out_corr_relu.size()}, flow={flow.size()}')
+            log(f'Sizes - x1={x1.size()}, x2={x2.size()}, x1_1b1y={x1_1by1.size()}, out_corr_relu = {out_corr_relu.size()}, flow={flow21.size()}')
 
             x_intm, flow_res = self.flow_estimators(
-                torch.cat([out_corr_relu, x1_1by1, flow], dim=1))
-            flow = flow + flow_res
+                torch.cat([out_corr_relu, x1_1by1, flow21], dim=1))
+            flow21 = flow21 + flow_res
             log(f'Completed flow estimation')
 
-            log(f'Sizes - x_intm={x_intm.size()}, flow = {flow.size()}')
-            flow_fine = self.context_networks(torch.cat([x_intm, flow], dim=1))
+            log(f'Sizes - x_intm={x_intm.size()}, flow = {flow21.size()}')
+            flow_fine = self.context_networks(torch.cat([x_intm, flow21], dim=1))
             log(f'Completed forward of context_networks')
-            log(f'Sizes - flow={flow.size()}, flow_fine={flow_fine.size()}')
-            flow = flow + flow_fine
-            flows.append(flow)
+            log(f'Sizes - flow={flow21.size()}, flow_fine={flow_fine.size()}')
+            flow21 = flow21 + flow_fine
+            flows.append(flow21)
 
             if l == self.output_level:
                 log(f'Broke flow construction at level {l+1}')
