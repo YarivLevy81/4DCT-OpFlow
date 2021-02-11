@@ -6,13 +6,15 @@ def no_transform(x):
     return x
 
 
-def get_transforms():
+def get_transforms(w_aug):
     rescale = tio.RescaleIntensity((0, 1))
-    crop_or_pad = tio.CropOrPad(target_shape=(256, 256, 128),)
-    transforms_dict = {tio.RandomAffine(): 0.4, tio.RandomElasticDeformation(): 0.4, tio.RandomFlip(): 0.1,
-                       tio.Lambda(no_transform): 0.1}
-    pipe = tio.Compose([rescale, crop_or_pad, tio.OneOf(transforms_dict)])
-
+    crop_or_pad = tio.CropOrPad(target_shape=(256, 256, 128), )
+    if w_aug:
+        transforms_dict = {tio.RandomAffine(): 0.4, tio.RandomElasticDeformation(): 0.4, tio.RandomFlip(): 0.1,
+                           tio.Lambda(no_transform): 0.1}
+        pipe = tio.Compose([rescale, crop_or_pad, tio.OneOf(transforms_dict)])
+    else:
+        pipe = tio.Compose([rescale, crop_or_pad])
     return pipe
 
 
@@ -24,12 +26,12 @@ def get_transformed_images(trans_subj: tio.Subject, org_vox_dims, plot=False):
     return aug_im1, aug_im2, org_vox_dims
 
 
-def pre_augmentor(img1, img2, vox, plot=False):
+def pre_augmentor(img1, img2, vox, w_aug: bool, plot=False):
     tim1 = tio.Image(tensor=img1[np.newaxis], spacing=vox)
     tim2 = tio.Image(tensor=img2[np.newaxis], spacing=vox)
     subj = tio.Subject({'one image': tim1, 'two image': tim2})
     if plot: subj.plot()
-    transforms = get_transforms()
+    transforms = get_transforms(w_aug)
     trans_subj = transforms(subj)
     aug_img1, aug_img2, aug_vox = get_transformed_images(trans_subj, vox)
     return (aug_img1, aug_vox), (aug_img2, aug_vox)

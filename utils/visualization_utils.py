@@ -18,6 +18,10 @@ def plot_image(
     slice_x = rotate(data[i, :, :])
     slice_y = rotate(data[:, j, :])
     slice_z = rotate(data[:, :, k])
+    # slice_x = (data[i, :, :])
+    # slice_y = (data[:, j, :])
+    # slice_z = (data[:, :, k])
+
     kwargs = {}
     kwargs['cmap'] = 'gray'
     x_extent, y_extent, z_extent = [(0, b - 1) for b in data.shape]
