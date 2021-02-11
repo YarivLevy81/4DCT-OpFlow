@@ -56,3 +56,4 @@ scipy~=1.6.0
 easydict~=1.9
 torchio~=0.18.15
 tensorboard
+flow_vis
