@@ -43,7 +43,7 @@ class UnFlowLoss(nn.modules.Module):
         loss_val = 0
         for l in loss:
             mean = l.mean()
-            print(f'Loss -> {mean}')
+            log(f'Loss -> {mean}')
             loss_val += mean
         return loss_val
 

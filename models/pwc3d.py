@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchio as tio
 from utils.warp_utils import flow_warp
 from utils.misc import log
 
@@ -62,13 +61,13 @@ class PWC3d_Lite(nn.Module):
 
     def init_weights(self, layer):
         if isinstance(layer, nn.Conv3d):
-            print(f'Visit nn.Conv3d')
+            log(f'Visit nn.Conv3d')
             nn.init.kaiming_normal_(layer.weight)
             if layer.bias is not None:
                 nn.init.constant_(layer.bias, 0)
 
         elif isinstance(layer, nn.ConvTranspose3d):
-            print(f'Visit nn.ConvTranspose3d')
+            log(f'Visit nn.ConvTranspose3d')
             nn.init.kaiming_normal_(layer.weight)
             if layer.bias is not None:
                 nn.init.constant_(layer.bias, 0)

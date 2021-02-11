@@ -22,8 +22,8 @@ class BaseTrainer:
         self.loss_func = loss_func
 
         self.best_error = np.inf
-        self.i_epoch = 0
-        self.i_iter = 0
+        self.i_epoch = 1
+        self.i_iter = 1
 
     def train(self):
         for epoch in range(self.args.epochs):
