@@ -33,19 +33,11 @@ class CT_4DDataset(Dataset):
         if img1.shape[2] > 128:
             print('non_mat')
             # todo implement solution
-        # else:
-        #     img1 = pad_img_to_128(img1)
-        #     img2 = pad_img_to_128(img2)
+
         if self.patient_samples[index]['dim'] == 512:
             img1, img2 = crop_512_imgs_to_256(img1, img2)
 
-        # normalizing data to 0-1
-        # img1 = img1 / 4196
-        # img2 = img2 / 4196
-        # img1 = zoom(img1, (0.25, 0.25, 0.25))
-        # img2 = zoom(img2, (0.25, 0.25, 0.25))
         p1, p2 = pre_augmentor(img1, img2, vox_dim1, self.w_augmentations)
-        # return (img1,vox_dim1),(img2,vox_dim2)
         return p1, p2
 
     def collect_samples(self):

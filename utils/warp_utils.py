@@ -23,7 +23,7 @@ def norm_grid(v_grid):
 
 def flow_warp(img2, flow21, pad='border', mode='bilinear'):
     B, _, H, W, D = flow21.size()
-    flow=torch.flip(flow21,[1])
+    flow = torch.flip(flow21, [1])
 
     base_grid = mesh_grid(B, H, W, D).type_as(img2)  # B2HW
 

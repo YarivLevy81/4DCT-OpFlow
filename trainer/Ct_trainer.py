@@ -3,6 +3,7 @@ from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
 import math
+import numpy as np
 
 
 class TrainFramework(BaseTrainer):
@@ -68,16 +69,19 @@ class TrainFramework(BaseTrainer):
             img1, img2, flow12 = data
             log(f'img1.size()={img1[0].size()}, img2.size()={img2[0].size()}, flow12.size()={flow12[0].size()}')
             output = self.model(img1, img2)
+
             log(f'flow_size = {output[0].size()}')
             log(f'flow_size = {output[0].shape}')
 
             flow12_net = output[0].squeeze(0).float()  # Remove batch dimension, net prediction
             flow12 = flow12[0]  # This is the 'ground_truth' flow
-            validation_loss += (flow12 - flow12_net).abs().sum().item()
+            epe_map = np.sqrt(
+                np.sum(np.square(flow12.detach().numpy() - flow12_net.detach().numpy()))
+            )
+            validation_loss += epe_map.mean()
             log(validation_loss)
 
         validation_loss /= len(self.valid_loader)
-        validation_loss = math.log(validation_loss)
         print(f'Validation loss -> {validation_loss}')
 
         self.writer.add_scalar('Validation Loss',
