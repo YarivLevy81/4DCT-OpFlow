@@ -20,7 +20,6 @@ import glob
 import os
 
 
-
 def images_to_3dnump(dir_name, img_num, plot=False):
     # load the DICOM files
     files = []
@@ -54,7 +53,6 @@ def images_to_3dnump(dir_name, img_num, plot=False):
     cor_aspect = ss / ps[0]
     voxel_size = np.ndarray(shape=3, buffer=np.array([ps[0], ps[1], ss]), dtype=float)
 
-
     # create 3D array
     img_shape = list(slices[0].pixel_array.shape)
     img_shape.append(len(slices))
@@ -64,7 +62,6 @@ def images_to_3dnump(dir_name, img_num, plot=False):
     for i, s in enumerate(slices):
         img2d = s.pixel_array
         img3d[:, :, i] = img2d
-
 
     # plot 3 orthogonal slices
     if plot:
@@ -82,7 +79,7 @@ def images_to_3dnump(dir_name, img_num, plot=False):
         plt.title(img_num)
         plt.show()
 
-    return img3d,voxel_size
+    return img3d, voxel_size
 
 
 def nd_list_to_4d(nd_arrays) -> np.ndarray:
@@ -93,15 +90,16 @@ def nd_list_to_4d(nd_arrays) -> np.ndarray:
         mat4d[i, :, :, :] = img3d
     return mat4d
 
+
 def convert_matrix_folder_to_4dnpz_file(
-        dir_path,trgt_path, pat_num, first_img, end_img, onefile=True):
+        dir_path, trgt_path, pat_num, first_img, end_img, onefile=True):
     nd_arrs = []
     for img_num in range(first_img, end_img + 1):
         img3d, voxel_dim = images_to_3dnump(dir_path, img_num)
         nd_arrs.append(img3d)
     mat_4d = nd_list_to_4d(nd_arrs)
     if onefile:
-        name=f'mat_{pat_num}_{mat_4d.shape}.npz'
+        name = f'mat_{pat_num}_{mat_4d.shape}.npz'
         with open(trgt_path + name, 'wb') as out:
             np.savez_compressed(out, data=mat_4d, vox_dim=voxel_dim)
 
@@ -110,69 +108,79 @@ def convert_matrix_folder_to_4dnpz_file(
             with open(trgt_path + f"{i + 1}.npy", 'wb') as out:
                 np.save(out, nd_arrs[i])
 
+
 def npz_to_ndarray_and_vox_dim(filename) -> np.ndarray:
     with np.load(filename) as npzfile:
         mat3d = npzfile['data']
         vox_dim = npzfile['vox_dim']
-        return mat3d,vox_dim
+        return mat3d, vox_dim
 
-def mat4d_to_mat3d_fold(mat4d,vox_dim,parent_dir_name,trgt_dir_name):
-    directory=parent_dir_name+'/'+trgt_dir_name
+
+def validation_to_npz(target_dir_name, filename, im1, im1_vox, im2, im2_vox, flow):
+    with open(target_dir_name + f'/mat_{filename}_valid {im1.shape}.npz', 'wb') as outfile:
+        np.savez_compressed(outfile, img1_data=im1, img1_vox_dim=im1_vox, img2_data=im2, img2_vox_dim=im2_vox,
+                            flow=flow)
+
+
+def npz_valid_to_ndarrays_flow_vox(filename):
+    with np.load(filename) as npzfile:
+        img1_data = npzfile['img1_data']
+        img1_vox_dim = npzfile['img1_vox_dim']
+        img2_data = npzfile['img2_data']
+        img2_vox_dim = npzfile['img2_vox_dim']
+        flow12 = npzfile['flow']
+        return (img1_data, img1_vox_dim), (img2_data, img2_vox_dim), flow12
+
+
+def mat4d_to_mat3d_fold(mat4d, vox_dim, parent_dir_name, trgt_dir_name):
+    directory = parent_dir_name + '/' + trgt_dir_name
     if not os.path.exists(directory):
         os.makedirs(directory)
     for i in range(mat4d.shape[0]):
-        mat3d=mat4d[i,:,:,:]
+        mat3d = mat4d[i, :, :, :]
         with open(directory + f'/mat_{i}_{mat3d.shape}.npz', 'wb') as outfile:
             np.savez_compressed(outfile, data=mat3d, vox_dim=vox_dim)
 
 
 def mat4dfold_to_mat3dfolds(dir_name):
-    files=[]
-    for fname in glob.glob(dir_name+"*.npz", recursive=False):
-        #print("loading: {}".format(fname))
+    files = []
+    for fname in glob.glob(dir_name + "*.npz", recursive=False):
+        # print("loading: {}".format(fname))
         files.append(fname)
     for file in files[47:]:
-        name=file.split("_")
-        fname=name[2]+'_'
-        if len(name)!=4:
-            for i in range(3,len(name)-1):
-                fname+=(name[i]+'_')
+        name = file.split("_")
+        fname = name[2] + '_'
+        if len(name) != 4:
+            for i in range(3, len(name) - 1):
+                fname += (name[i] + '_')
         print(fname)
-        mat4d,vox_dim=npz_to_ndarray_and_vox_dim(file)
+        mat4d, vox_dim = npz_to_ndarray_and_vox_dim(file)
         print("mat loaded")
-        mat4d_to_mat3d_fold(mat4d,vox_dim,dir_name,fname[:-1])
-
-        
-
+        mat4d_to_mat3d_fold(mat4d, vox_dim, dir_name, fname[:-1])
 
 
 dir_folder_path = "/mnt/storage/datasets/4DCT/041516 New Cases/4/Anonymized - 4719590/Ctacor/CorVein_Bi 1.5 B25f MPR 0-95% Matrix 256 - 10/"
-target_path="/mnt/storage/datasets/4DCT/041516 New Cases/Nd_arrays/"
+target_path = "/mnt/storage/datasets/4DCT/041516 New Cases/Nd_arrays/"
 patient_num = "4"
 first_img_number = 9
 last_img_number = 28
-mats=[]
-#mat4dfold_to_mat3dfolds(target_path) 
-#mats.append(("21","/",7,26))
-#mats.append(("22","/",7,29))
-#mats.append(("24","/",11,29))
-#mats.append(("26","/mnt/storage/datasets/4DCT/041516 New Cases/26/Anonymized - 3080856/Ctacoc/DS_CorCTABi 1.5 B26f 0-95% Matrix 256 - 8/",7,8))
+mats = []
+# mat4dfold_to_mat3dfolds(target_path)
+# mats.append(("21","/",7,26))
+# mats.append(("22","/",7,29))
+# mats.append(("24","/",11,29))
+# mats.append(("26","/mnt/storage/datasets/4DCT/041516 New Cases/26/Anonymized - 3080856/Ctacoc/DS_CorCTABi 1.5 B26f 0-95% Matrix 256 - 8/",7,8))
 
-#mats.append(("40_2","/mnt/storage/datasets/4DCT/041516 New Cases/40.0/Anonymized - 4388157/Ctacoc/DS_CorCTABi 1.5 B26f 0-95% - 10/",1,20))
-
-
-
-#mats.append(("1","/",11,29))
+# mats.append(("40_2","/mnt/storage/datasets/4DCT/041516 New Cases/40.0/Anonymized - 4388157/Ctacoc/DS_CorCTABi 1.5 B26f 0-95% - 10/",1,20))
 
 
+# mats.append(("1","/",11,29))
 
 
 for mat in mats:
-    convert_matrix_folder_to_4dnpz_file(mat[1],target_path,mat[0],mat[2],mat[3])
+    convert_matrix_folder_to_4dnpz_file(mat[1], target_path, mat[0], mat[2], mat[3])
 
-#convert_matrix_folder_to_4dnpz_file(dir_folder_path,target_path, patient_num, first_img_number, last_img_number)
-
-
+# convert_matrix_folder_to_4dnpz_file(dir_folder_path,target_path, patient_num, first_img_number, last_img_number)
 
 
 """ 
