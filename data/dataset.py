@@ -86,7 +86,6 @@ class CT_4DValidationset(Dataset):
         return len(self.validation_tuples)
 
     def __getitem__(self, index):
-
         p1, p2, flow12 = validation_file_processor(self.validation_tuples[index])
         return p1, p2, flow12
 

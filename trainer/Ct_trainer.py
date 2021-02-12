@@ -2,6 +2,7 @@ from .base_trainer import BaseTrainer
 from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
+import math
 
 
 class TrainFramework(BaseTrainer):
@@ -10,7 +11,7 @@ class TrainFramework(BaseTrainer):
             train_loader, valid_loader, model, loss_func, args)
 
         # default `log_dir` is "runs" - we'll be more specific here
-        self.writer = SummaryWriter('runs/research2')
+        self.writer = SummaryWriter('runs/train_X_valid')
 
     def _run_one_epoch(self):
         key_meter_names = ['Loss', 'l_ph', 'l_sm']
@@ -40,7 +41,7 @@ class TrainFramework(BaseTrainer):
             print(f'Iteration {self.i_iter}, epoch {self.i_epoch}')
             print(f'Info = {key_meters}')
             #loss = 1024. * loss  # That's what they do in ARFlow
-            self.writer.add_scalar('training loss',
+            self.writer.add_scalar('Training Loss',
                                     loss,
                                     self.i_iter)
             loss.backward()
@@ -59,4 +60,28 @@ class TrainFramework(BaseTrainer):
             self.i_iter += 1
 
     def _validate(self):
-        return 0
+        print(f'\n\nRunning validation..')
+        validation_loss = 0
+
+        for i_step, data in enumerate(self.valid_loader):
+            log(f'Validating sample {i_step+1}')
+            img1, img2, flow12 = data
+            log(f'img1.size()={img1[0].size()}, img2.size()={img2[0].size()}, flow12.size()={flow12[0].size()}')
+            output = self.model(img1, img2)
+            log(f'flow_size = {output[0].size()}')
+            log(f'flow_size = {output[0].shape}')
+
+            flow12_net = output[0].squeeze(0).float()  # Remove batch dimension, net prediction
+            flow12 = flow12[0]  # This is the 'ground_truth' flow
+            validation_loss += (flow12 - flow12_net).abs().sum().item()
+            log(validation_loss)
+
+        validation_loss /= len(self.valid_loader)
+        validation_loss = math.log(validation_loss)
+        print(f'Validation loss -> {validation_loss}')
+
+        self.writer.add_scalar('Validation Loss',
+                               validation_loss,
+                               self.i_epoch)
+
+        return validation_loss

@@ -10,6 +10,7 @@
     "log_interval": 1,
     "save_model": false,
     "data_path": "./data/raw",
+    "valid_path": "./data/raw_validation",
     "pretrained_model": "./models/dir/4dct_ckpt.pth.tar",
     "alpha": 10,
     "w_ternary": 1,

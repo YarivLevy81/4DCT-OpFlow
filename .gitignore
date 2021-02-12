@@ -143,3 +143,4 @@ cython_debug/
 
 runs/
 models/dir/
+data/raw_validation/
