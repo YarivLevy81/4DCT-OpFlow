@@ -3,6 +3,8 @@ from scipy.ndimage import zoom
 import pathlib
 from torch.utils.data import Dataset
 from .dicom_utils import npz_to_ndarray_and_vox_dim as file_processor
+from .dicom_utils import npz_valid_to_ndarrays_flow_vox as validation_file_processor
+
 from .data_augmentor import pre_augmentor
 
 
@@ -42,7 +44,7 @@ class CT_4DDataset(Dataset):
         # img2 = img2 / 4196
         # img1 = zoom(img1, (0.25, 0.25, 0.25))
         # img2 = zoom(img2, (0.25, 0.25, 0.25))
-        p1, p2 = pre_augmentor(img1, img2, vox_dim1,self.w_augmentations)
+        p1, p2 = pre_augmentor(img1, img2, vox_dim1, self.w_augmentations)
         # return (img1,vox_dim1),(img2,vox_dim2)
         return p1, p2
 
@@ -67,6 +69,37 @@ class CT_4DDataset(Dataset):
                 self.patient_samples.append({'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
 
 
+class CT_4DValidationset(Dataset):
+    def __init__(self, root: str):
+        print(pathlib.Path.cwd())
+        root_dir = pathlib.Path(root)
+        if not root_dir.exists() or not root_dir.is_dir:
+            raise FileExistsError(f"{str(root_dir)} doesn't exist or isn't a directory")
+
+        self.root = root_dir
+
+        # Traverse the root directory and count it's size
+        self.validation_tuples = []
+        self.collect_samples()
+
+    def __len__(self):
+        return len(self.validation_tuples)
+
+    def __getitem__(self, index):
+
+        p1, p2, flow12 = validation_file_processor(self.validation_tuples[index])
+        return p1, p2, flow12
+
+    def collect_samples(self):
+        for entry in self.root.iterdir():
+            dir_files = []
+            if entry.is_file():
+                dir_files.append(entry)
+            dir_files.sort()
+            for idx in range(len(dir_files)):
+                self.validation_tuples.append(dir_files[idx])
+
+
 def pad_img_to_128(img):
     pad = np.zeros((img.shape[0], img.shape[1], 128))
     pad[:img.shape[0], :img.shape[1], :img.shape[2]] = img
@@ -82,5 +115,8 @@ def crop_512_imgs_to_256(image1, image2):
         image2[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
 
 
-def get_dataset(root="./raw", w_aug=False):
-    return CT_4DDataset(root=root, w_aug=w_aug)
+def get_dataset(root="./raw", w_aug=False, data_type='train'):
+    if data_type == 'train':
+        return CT_4DDataset(root=root, w_aug=w_aug)
+    if data_type == 'valid':
+        return CT_4DValidationset(root)
