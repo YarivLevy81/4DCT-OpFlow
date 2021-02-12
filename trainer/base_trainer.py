@@ -3,6 +3,8 @@ import numpy as np
 from abc import abstractmethod
 from utils.torch_utils import bias_parameters, weight_parameters, \
     load_checkpoint, save_checkpoint
+import pathlib
+import datetime
 
 
 class BaseTrainer:
@@ -22,6 +24,7 @@ class BaseTrainer:
         self.loss_func = loss_func
 
         self.best_error = np.inf
+        self.save_root = pathlib.Path(f'./models/dir')
         self.i_epoch = 1
         self.i_iter = 1
 
@@ -34,6 +37,10 @@ class BaseTrainer:
                 print(f'Epoch {self.i_epoch}, Error={error}')
             self.i_epoch += 1
 
+        # TODO: save with error
+        model_suffix = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        self.save_model(error, f'4DCT_{model_suffix}')
+
     @abstractmethod
     def _run_one_epoch(self):
         ...
@@ -45,10 +52,8 @@ class BaseTrainer:
     def _get_optimizer(self):
         param_groups = [
             {'params': bias_parameters(self.model),
-            # {'params': bias_parameters(self.model.module),
              'weight_decay': 0},
             {'params': weight_parameters(self.model),
-            # {'params': weight_parameters(self.model.module),
              'weight_decay': 1e-6}]
 
         return torch.optim.Adam(param_groups, self.args.lr, 
@@ -57,6 +62,7 @@ class BaseTrainer:
     def _init_model(self, model):
         model = model.to(self.device)
         if self.args.pretrained_model:
+            print(f'Loading model from {self.args.pretrained_model}')
             epoch, weights = load_checkpoint(self.args.pretrained_model)
 
             from collections import OrderedDict
@@ -82,12 +88,12 @@ class BaseTrainer:
         return torch.device('cpu'), None
 
     def save_model(self, error, name):
-        is_best = error < self.best_error
+        # is_best = error < self.best_error
 
-        if is_best:
-            self.best_error = error
+        # if is_best:
+        #     self.best_error = error
 
         models = {'epoch': self.i_epoch,
-                  'state_dict': self.model.module.state_dict()}
+                  'state_dict': self.model.state_dict()}
 
-        save_checkpoint(self.save_root, models, name, is_best)
+        save_checkpoint(self.save_root, models, name, is_best=False)
