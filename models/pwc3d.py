@@ -6,14 +6,14 @@ from utils.misc import log
 
 
 def get_model(args):
-    model = PWC3d_Lite(args)
+    model = PWC3D(args)
 
     return model
 
 
-class PWC3d_Lite(nn.Module):
+class PWC3D(nn.Module):
     def __init__(self, args, upsample=True, reduce_dense=True, search_range=4):
-        super(PWC3d_Lite, self).__init__()
+        super(PWC3D, self).__init__()
         self.search_range = search_range
         # TODO: num_chs starts from 1 because grayscale?
         self.num_chs = [1, 16, 32, 64, 96, 128, 192]

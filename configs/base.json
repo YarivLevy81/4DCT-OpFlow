@@ -10,7 +10,7 @@
     "log_interval": 1,
     "save_model": false,
     "data_path": "./data/raw",
-    "pretrained_model": null,
+    "pretrained_model": "./models/dir/4dct_ckpt.pth.tar",
     "alpha": 10,
     "w_ternary": 1,
     "w_l1": 1,
