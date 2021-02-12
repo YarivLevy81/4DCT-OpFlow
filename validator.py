@@ -75,6 +75,8 @@ def find_zer_coors(img):
             for k in range(D):
                 if img[0, 0, i, j, k] <= 0.3:
                     print(f'({i},{j},{k})')
+
+
 if __name__ == '__main__':
     import argparse
 
