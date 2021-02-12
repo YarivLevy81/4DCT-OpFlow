@@ -24,7 +24,7 @@ if __name__ == '__main__':
     print(f'<<<<< Init experiement >>>>>')
     print(f'args={args}')
 
-    train_set = get_dataset(root=args.data_path,w_aug=True)
+    train_set = get_dataset(root=args.data_path, w_aug=True)
 
     print('{} samples found'.format(len(train_set)))
 
