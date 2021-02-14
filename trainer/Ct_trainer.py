@@ -2,8 +2,8 @@ from .base_trainer import BaseTrainer
 from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
-import math
 import numpy as np
+from losses.flow_loss import get_loss
 
 
 class TrainFramework(BaseTrainer):
@@ -62,11 +62,13 @@ class TrainFramework(BaseTrainer):
 
     def _validate(self):
         print(f'\n\nRunning validation..')
-        validation_loss = 0
+        error = 0
+        loss = 0
 
         for i_step, data in enumerate(self.valid_loader):
             log(f'Validating sample {i_step+1}')
             img1, img2, flow12 = data
+            vox_dim = img1[1][0]
             log(f'img1.size()={img1[0].size()}, img2.size()={img2[0].size()}, flow12.size()={flow12[0].size()}')
             output = self.model(img1, img2)
 
@@ -78,14 +80,25 @@ class TrainFramework(BaseTrainer):
             epe_map = np.sqrt(
                 np.sum(np.square(flow12.detach().numpy() - flow12_net.detach().numpy()))
             )
-            validation_loss += epe_map.mean()
-            log(validation_loss)
+            error += epe_map.mean()
+            log(error)
 
-        validation_loss /= len(self.valid_loader)
-        print(f'Validation loss -> {validation_loss}')
+            img1 = img1[0].unsqueeze(1).float()  # Add channel dimension
+            img2 = img2[0].unsqueeze(1).float()  # Add channel dimension
+            _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
+            loss += _loss
 
-        self.writer.add_scalar('Validation Loss',
-                               validation_loss,
+        error /= len(self.valid_loader)
+        loss /= len(self.valid_loader)
+        print(f'Validation error -> {error}')
+        print(f'Validation loss -> {loss}')
+
+        self.writer.add_scalar('Validation Error',
+                               error,
                                self.i_epoch)
 
-        return validation_loss
+        self.writer.add_scalar('Validation Loss',
+                               loss,
+                               self.i_epoch)
+
+        return error, loss
