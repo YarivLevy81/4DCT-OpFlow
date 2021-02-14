@@ -117,7 +117,7 @@ def npz_to_ndarray_and_vox_dim(filename) -> np.ndarray:
 
 
 def validation_to_npz(target_dir_name, filename, im1, im1_vox, im2, im2_vox, flow):
-    with open(target_dir_name + f'/mat_{filename}_valid {im1.shape}.npz', 'wb') as outfile:
+    with open(target_dir_name + f'/mat_valid_{filename}{im1.shape}.npz', 'wb') as outfile:
         np.savez_compressed(outfile, img1_data=im1, img1_vox_dim=im1_vox, img2_data=im2, img2_vox_dim=im2_vox,
                             flow=flow)
 

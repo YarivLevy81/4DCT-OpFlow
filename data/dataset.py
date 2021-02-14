@@ -30,6 +30,7 @@ class CT_4DDataset(Dataset):
     def __getitem__(self, index):
         img1, vox_dim1 = file_processor(self.patient_samples[index]['img1'])
         img2, vox_dim2 = file_processor(self.patient_samples[index]['img2'])
+        sample_name = self.patient_samples[index]['name']
         if img1.shape[2] > 128:
             print('non_mat')
             # todo implement solution
@@ -38,7 +39,7 @@ class CT_4DDataset(Dataset):
             img1, img2 = crop_512_imgs_to_256(img1, img2)
 
         p1, p2 = pre_augmentor(img1, img2, vox_dim1, self.w_augmentations)
-        return p1, p2
+        return p1, p2, sample_name
 
     def collect_samples(self):
         for entry in self.root.iterdir():
@@ -58,7 +59,11 @@ class CT_4DDataset(Dataset):
             else:
                 dim = 512
             for idx in range(len(dir_files) - 1):
-                self.patient_samples.append({'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
+                sample_name = dir_files[idx].name
+                sample_name = sample_name[sample_name.index('_'):sample_name.index('(')]
+                name = dir_files[idx].parent.name + sample_name
+                self.patient_samples.append(
+                    {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
 
 
 class CT_4DValidationset(Dataset):

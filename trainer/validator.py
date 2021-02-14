@@ -1,3 +1,5 @@
+import pathlib
+
 import torchio as tio
 import numpy as np
 from data.dataset import get_dataset
@@ -6,12 +8,13 @@ import SimpleITK as sitk
 from utils.warp_utils import flow_warp
 from utils.visualization_utils import plot_image, plot_flow
 import random
+from data.dicom_utils import validation_to_npz
 
 
 class Validator(object):
 
     def __init__(self):
-        self.dataset = get_dataset(root="../data/raw", w_aug=False)
+        self.dataset = get_dataset(root="./data/validation/", w_aug=False)
         self.validation_batch_size = 4
 
     @staticmethod
@@ -19,7 +22,7 @@ class Validator(object):
         rescale = tio.RescaleIntensity((0, 1))
         crop_or_pad = tio.CropOrPad(target_shape=(256, 256, 128), )
         transformer = tio.RandomElasticDeformation()
-        pipe = tio.Compose([rescale, transformer])
+        pipe = tio.Compose([rescale, crop_or_pad, transformer])
 
         _transformed = pipe(subject)
         _transformation_data = _transformed.history
@@ -59,6 +62,32 @@ class Validator(object):
             vectors = sitk.GetArrayFromImage(displ).T
             vectors[2, :, :, :] *= (-1)
             v_as_torch = torch.from_numpy(vectors).unsqueeze(0).float()
+
+
+def create_and_save_validation_triplet(img1, vox, name, target_dir):
+    tim = tio.Image(tensor=img1, spacing=vox)
+    tim_itk = tim.as_sitk()
+    subj = tio.Subject({'img': tim})
+
+    transformed, transformation_data = Validator.make_validation_sample(subj)
+    t = transformation_data[-1]
+    control_points = t.control_points
+    itk_transform = t.get_bspline_transform(subj['img'].as_sitk(), control_points)
+    x, y, z = itk_transform.GetCoefficientImages()
+    displ = sitk.TransformToDisplacementField(itk_transform,
+                                              sitk.sitkVectorFloat64,
+                                              tim_itk.GetSize(),
+                                              tim_itk.GetOrigin(),
+                                              tim_itk.GetSpacing(),
+                                              tim_itk.GetDirection())
+    vectors = sitk.GetArrayFromImage(displ).T
+    vectors[2, :, :, :] *= (-1)
+    v_as_torch = torch.from_numpy(vectors).unsqueeze(0).float()
+    transformed_recons = flow_warp(data.unsqueeze(0).float(), v_as_torch)
+    out_img1 = data.squeeze(0).numpy()
+    out_img2 = transformed_recons.squeeze(0).squeeze(0).numpy()
+    validation_to_npz(target_dir, name, out_img1, vox, out_img2, vox, vectors)
+    return True
 
 
 def analyze_coor(coor):
@@ -127,46 +156,51 @@ if __name__ == '__main__':
         data = torch.from_numpy(img[np.newaxis])
         vox = (1, 1, 1)
     else:
-        img = validator.dataset[0]
-        data = img[0][0][np.newaxis]
+        img = validator.dataset[2]
+        data = img[1][0][np.newaxis]
         vox = img[0][1]
-
-    tim = tio.Image(tensor=data, spacing=vox)
-    tim_itk = tim.as_sitk()
-    subj = tio.Subject({'img': tim})
-
-    transformed, transformation_data = validator.make_validation_sample(subj)
-    subj.plot()
-    transformed.plot()
-
-    t = transformation_data[-1]
-    control_points = t.control_points
-
-    itk_transform = t.get_bspline_transform(subj['img'].as_sitk(), control_points)
-    x, y, z = itk_transform.GetCoefficientImages()
-    displ = sitk.TransformToDisplacementField(itk_transform,
-                                              sitk.sitkVectorFloat64,
-                                              tim_itk.GetSize(),
-                                              tim_itk.GetOrigin(),
-                                              tim_itk.GetSpacing(),
-                                              tim_itk.GetDirection())
-
-    transformed_img = transformed.get_images()
-    aug_im1 = transformed_img[0].data
-    vectors = sitk.GetArrayFromImage(displ).T
-    vectors[2,:,:,:]*=(-1)
-    # vectors = np.zeros(vectors.shape) * 2
-    # vectors[2,:,:,:]=2
-    v_as_torch = torch.from_numpy(vectors).unsqueeze(0).float()
-    transformed_recons = flow_warp(data.unsqueeze(0).float(), v_as_torch)
-    plot_image(aug_im1)
-    # transformed_recons = flow_warp(aug_im1.unsqueeze(0).float(), v_as_torch)
-    plot_image(transformed_recons)
-    plot_flow(v_as_torch)
-    # find_zer_coors(data.unsqueeze(0).float())
-    # print('looking in transformed')
-    # find_zer_coors(transformed_recons)
-
-    # tim = tio.Image(tensor=transformed_recons.squeeze(0), spacing=vox)
+    create_and_save_validation_triplet(data, vox, "4_3_", "./data/validation/")
+    # tim = tio.Image(tensor=data, spacing=vox)
+    # tim_itk = tim.as_sitk()
     # subj = tio.Subject({'img': tim})
+    #
+    # transformed, transformation_data = validator.make_validation_sample(subj)
     # subj.plot()
+    # transformed.plot()
+    #
+    # t = transformation_data[-1]
+    # control_points = t.control_points
+    #
+    # itk_transform = t.get_bspline_transform(subj['img'].as_sitk(), control_points)
+    # x, y, z = itk_transform.GetCoefficientImages()
+    # displ = sitk.TransformToDisplacementField(itk_transform,
+    #                                           sitk.sitkVectorFloat64,
+    #                                           tim_itk.GetSize(),
+    #                                           tim_itk.GetOrigin(),
+    #                                           tim_itk.GetSpacing(),
+    #                                           tim_itk.GetDirection())
+    #
+    # transformed_img = transformed.get_images()
+    # aug_im1 = transformed_img[0].data
+    # vectors = sitk.GetArrayFromImage(displ).T
+    # vectors[2,:,:,:]*=(-1)
+    # # vectors = np.zeros(vectors.shape) * 2
+    # # vectors[2,:,:,:]=2
+    # v_as_torch = torch.from_numpy(vectors).unsqueeze(0).float()
+    # transformed_recons = flow_warp(data.unsqueeze(0).float(), v_as_torch)
+    # # plot_image(aug_im1)
+    # # transformed_recons = flow_warp(aug_im1.unsqueeze(0).float(), v_as_torch)
+    # plot_image(transformed_recons)
+    # plot_flow(v_as_torch)
+    # # find_zer_coors(data.unsqueeze(0).float())
+    # # print('looking in transformed')
+    # # find_zer_coors(transformed_recons)
+    # # tim = tio.Image(tensor=transformed_recons.squeeze(0), spacing=vox)
+    # # subj = tio.Subject({'img': tim})
+    # # subj.plot()
+    # out_img1=data.squeeze(0).numpy()
+    # out_img2= data.squeeze(0).squeeze(0).numpy()
+    # print('done')
+    # root = "./data/validation/"
+    # root_dir = pathlib.Path(root)
+    # # validation_to_npz(root,"4_2",out_img1,vox,out_img2,vox,vectors)
