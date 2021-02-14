@@ -23,7 +23,7 @@ class TrainFramework(BaseTrainer):
 
         for i_step, data in enumerate(self.train_loader):
 
-            img1, img2 = data
+            img1, img2,_ = data
             vox_dim = img1[1][0]
             res = self.model(img1, img2)
 
