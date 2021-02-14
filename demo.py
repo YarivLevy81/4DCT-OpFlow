@@ -14,6 +14,9 @@ if __name__ == '__main__':
                         help="Model .pth.tar file")
     parser.add_argument('-d', '--data-path', default='./data/raw',
                         help="Path of patients images")
+    parser.add_argument('-v', '--valid-path', default='./data/raw_validation',
+                        help="Path of validation patients images")
+    parser.add_argument('-s', '--synthetic', action='store_true', help="Whether to use synthetic deformation")
     args = parser.parse_args()
 
     model = pwc3d.PWC3D(args)
@@ -32,18 +35,28 @@ if __name__ == '__main__':
     model.load_state_dict(weights)
 
     train_set = get_dataset(root=args.data_path, w_aug=True)
-    train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=1,
-        num_workers=4, pin_memory=False, shuffle=True
-    )
+    valid_set = get_dataset(root=args.valid_path, w_aug=False, data_type='valid')
+
+    loader = None
+    if not args.synthetic:
+        loader = torch.utils.data.DataLoader(
+            train_set, batch_size=1,
+            num_workers=4, pin_memory=False, shuffle=True
+        )
+    else:
+        loader = torch.utils.data.DataLoader(
+            valid_set, batch_size=1,
+            num_workers=4, pin_memory=False, shuffle=True
+        )
+
     rnd_sample = randint(0, len(train_set)-1)
 
-    for i_step, data in enumerate(train_loader):
+    for i_step, data in enumerate(loader):
         if i_step != rnd_sample:
             continue
 
-        img1, img2, _ = data
-        flow = model(img1, img2)[0]
+        img1, img2, flow = data
+        flow_net = model(img1, img2)[0]
 
         img1 = img1[0].unsqueeze(1).float()  # Add channel dimension
         img2 = img2[0].unsqueeze(1).float()  # Add channel dimension
@@ -54,6 +67,11 @@ if __name__ == '__main__':
         # Image 2 plot
         plot_image(img2)
 
-        # Flow plot
-        plot_flow(flow.unsqueeze(0).float().detach())
+        if args.synthetic:
+            # Real flow plot
+            plot_flow(flow[0].float().detach())
+
+        # Net's flow plot
+        plot_flow(flow_net.unsqueeze(0).float().detach())
+
         break
