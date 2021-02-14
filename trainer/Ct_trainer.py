@@ -12,7 +12,7 @@ class TrainFramework(BaseTrainer):
             train_loader, valid_loader, model, loss_func, args)
 
         # default `log_dir` is "runs" - we'll be more specific here
-        self.writer = SummaryWriter('runs/train_X_valid')
+        self.writer = SummaryWriter('runs/research')
 
     def _run_one_epoch(self):
         key_meter_names = ['Loss', 'l_ph', 'l_sm']
