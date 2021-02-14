@@ -3,7 +3,7 @@ from scipy.ndimage import zoom
 import pathlib
 from torch.utils.data import Dataset
 from .dicom_utils import npz_to_ndarray_and_vox_dim as file_processor
-from .dicom_utils import npz_valid_to_ndarrays_flow_vox as validation_file_processor
+from .dicom_utils import npz_valid_to_ndarrays_flow_vox as vld_file_processor
 
 from .data_augmentor import pre_augmentor
 
@@ -86,7 +86,7 @@ class CT_4DValidationset(Dataset):
         return len(self.validation_tuples)
 
     def __getitem__(self, index):
-        p1, p2, flow12 = validation_file_processor(
+        p1, p2, flow12 = vld_file_processor(
             self.validation_tuples[index])
         return p1, p2, flow12
 
@@ -123,7 +123,6 @@ def get_dataset(root="./raw", w_aug=False, data_type='train'):
 
 
 def take_name(file_path):
-    sample_name = file_path.name
-    sample_name = sample_name[sample_name.index(
-        '_')+1:(sample_name.index('(')-1)]
-    return int(sample_name)
+    name = file_path.name
+    name = name[name.index('_')+1:(name.index('(')-1)]
+    return int(name)
