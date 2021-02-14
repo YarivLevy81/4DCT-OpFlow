@@ -13,7 +13,8 @@ class CT_4DDataset(Dataset):
         print(pathlib.Path.cwd())
         root_dir = pathlib.Path(root)
         if not root_dir.exists() or not root_dir.is_dir:
-            raise FileExistsError(f"{str(root_dir)} doesn't exist or isn't a directory")
+            raise FileExistsError(
+                f"{str(root_dir)} doesn't exist or isn't a directory")
 
         self.root = root_dir
         self.w_augmentations = w_aug
@@ -53,14 +54,15 @@ class CT_4DDataset(Dataset):
             for file in directory.iterdir():
                 if file.is_file():
                     dir_files.append(file)
-            dir_files.sort()
+            dir_files.sort(key=take_name)
             if len(list(directory.glob('*(256, 256*'))) > 0:
                 dim = 256
             else:
                 dim = 512
             for idx in range(len(dir_files) - 1):
                 sample_name = dir_files[idx].name
-                sample_name = sample_name[sample_name.index('_'):sample_name.index('(')]
+                sample_name = sample_name[sample_name.index(
+                    '_'):sample_name.index('(')]
                 name = dir_files[idx].parent.name + sample_name
                 self.patient_samples.append(
                     {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
@@ -71,7 +73,8 @@ class CT_4DValidationset(Dataset):
         print(pathlib.Path.cwd())
         root_dir = pathlib.Path(root)
         if not root_dir.exists() or not root_dir.is_dir:
-            raise FileExistsError(f"{str(root_dir)} doesn't exist or isn't a directory")
+            raise FileExistsError(
+                f"{str(root_dir)} doesn't exist or isn't a directory")
 
         self.root = root_dir
 
@@ -83,7 +86,8 @@ class CT_4DValidationset(Dataset):
         return len(self.validation_tuples)
 
     def __getitem__(self, index):
-        p1, p2, flow12 = validation_file_processor(self.validation_tuples[index])
+        p1, p2, flow12 = validation_file_processor(
+            self.validation_tuples[index])
         return p1, p2, flow12
 
     def collect_samples(self):
@@ -116,3 +120,10 @@ def get_dataset(root="./raw", w_aug=False, data_type='train'):
         return CT_4DDataset(root=root, w_aug=w_aug)
     if data_type == 'valid':
         return CT_4DValidationset(root)
+
+
+def take_name(file_path):
+    sample_name = file_path.name
+    sample_name = sample_name[sample_name.index(
+        '_')+1:(sample_name.index('(')-1)]
+    return int(sample_name)
