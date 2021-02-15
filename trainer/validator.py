@@ -1,20 +1,24 @@
-import pathlib
-
+import sys
+import os
+# BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# sys.path.append(BASE_PATH)
 import torchio as tio
 import numpy as np
-from data.dataset import get_dataset
+
 import torch
 import SimpleITK as sitk
+from data.dataset import get_dataset
+from data.dicom_utils import validation_to_npz
 from utils.warp_utils import flow_warp
 from utils.visualization_utils import plot_image, plot_flow
 import random
-from data.dicom_utils import validation_to_npz
 
 
 class Validator(object):
 
     def __init__(self):
-        self.dataset = get_dataset(root="./data/validation/", w_aug=False)
+        self.dataset = get_dataset(
+            root="/mnt/storage/datasets/4DCT/041516 New Cases/training_data", w_aug=False)
         self.validation_batch_size = 4
 
     @staticmethod
@@ -43,12 +47,14 @@ class Validator(object):
             tim_itk = tim.as_sitk()
             subj = tio.Subject({'img': tim})
 
-            transformed, transformation_data = validator.make_validation_sample(subj)
+            transformed, transformation_data = validator.make_validation_sample(
+                subj)
 
             t = transformation_data[-1]
             control_points = t.control_points
 
-            itk_transform = t.get_bspline_transform(subj['img'].as_sitk(), control_points)
+            itk_transform = t.get_bspline_transform(
+                subj['img'].as_sitk(), control_points)
             x, y, z = itk_transform.GetCoefficientImages()
             displ = sitk.TransformToDisplacementField(itk_transform,
                                                       sitk.sitkVectorFloat64,
@@ -72,7 +78,8 @@ def create_and_save_validation_triplet(img1, vox, name, target_dir):
     transformed, transformation_data = Validator.make_validation_sample(subj)
     t = transformation_data[-1]
     control_points = t.control_points
-    itk_transform = t.get_bspline_transform(subj['img'].as_sitk(), control_points)
+    itk_transform = t.get_bspline_transform(
+        subj['img'].as_sitk(), control_points)
     x, y, z = itk_transform.GetCoefficientImages()
     displ = sitk.TransformToDisplacementField(itk_transform,
                                               sitk.sitkVectorFloat64,
@@ -147,19 +154,24 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Validator of 4DCT-Net')
-    parser.add_argument('-s', '--synthetic', action='store_true', help="Whether to use synthetic or real data")
+    parser.add_argument('-s', '--synthetic', action='store_true',
+                        help="Whether to use synthetic or real data")
     args = parser.parse_args()
 
     validator = Validator()
-    if args.synthetic:
-        img = create_synt_data()
-        data = torch.from_numpy(img[np.newaxis])
-        vox = (1, 1, 1)
-    else:
-        img = validator.dataset[2]
-        data = img[1][0][np.newaxis]
-        vox = img[0][1]
-    create_and_save_validation_triplet(data, vox, "4_3_", "./data/validation/")
+    num_of_valid_samples_to_create = 0
+    target_dir = '/mnt/storage/datasets/4DCT/041516 New Cases/validation_data'
+    for idx in range(num_of_valid_samples_to_create):
+        print(f'creating sample no\'{idx+1}')
+        if args.synthetic:
+            img = create_synt_data()
+            data = torch.from_numpy(img[np.newaxis])
+            vox = (1, 1, 1)
+        else:
+            img = validator.dataset[idx]
+            data = img[1][0][np.newaxis]
+            vox = img[0][1]
+        create_and_save_validation_triplet(data, vox, img[2], target_dir)
     # tim = tio.Image(tensor=data, spacing=vox)
     # tim_itk = tim.as_sitk()
     # subj = tio.Subject({'img': tim})
