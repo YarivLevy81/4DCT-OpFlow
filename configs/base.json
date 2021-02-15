@@ -12,6 +12,7 @@
     "data_path": "./data/raw",
     "valid_path": "./data/raw_validation",
     "pretrained_model": "./models/dir/4dct_ckpt.pth.tar",
+    "n_gpu": 1,
     "alpha": 10,
     "w_ternary": 1,
     "w_l1": 1,

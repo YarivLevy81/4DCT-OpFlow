@@ -15,7 +15,7 @@ class BaseTrainer:
     def __init__(self, train_loader, valid_loader, model, loss_func, args):
         self.train_loader = train_loader
         self.valid_loader = valid_loader
-        self.device, self.device_ids = self._init_device()
+        self.device, self.device_ids = self._init_device(args.n_gpu)
         self.args = args
 
         self.model = self._init_model(model)
@@ -33,7 +33,7 @@ class BaseTrainer:
             self._run_one_epoch()
 
             if self.i_epoch % self.args.log_interval == 0:
-                error = self._validate()
+                error, loss = self._validate()
                 print(f'Epoch {self.i_epoch}, Error={error}')
             self.i_epoch += 1
 
@@ -83,9 +83,23 @@ class BaseTrainer:
 
         return model
 
-    def _init_device(self):
-        # TODO: implement with cuda also
-        return torch.device('cpu'), None
+    def _init_device(self, n_gpu_use):
+        """
+        setup GPU device if available, move model into configured device
+        """
+        n_gpu = torch.cuda.device_count()
+        if n_gpu_use > 0 and n_gpu == 0:
+            print("Warning: There\'s no GPU available on this machine,"
+                  "training will be performed on CPU.")
+            n_gpu_use = 0
+        if n_gpu_use > n_gpu:
+            print(
+                "Warning: The number of GPU\'s configured to use is {}, "
+                "but only {} are available.".format(n_gpu_use, n_gpu))
+            n_gpu_use = n_gpu
+        device = torch.device('cuda:0' if n_gpu_use > 0 else 'cpu')
+        list_ids = list(range(n_gpu_use))
+        return device, list_ids
 
     def save_model(self, error, name):
         # is_best = error < self.best_error

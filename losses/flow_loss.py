@@ -78,7 +78,6 @@ class UnFlowLoss(nn.modules.Module):
             img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
 
             flow21 = flow[:, :3]
-            log(f'img1_scaled.size()={img1_scaled.size()}, flows12.size()={flow21.size()}')
             # Not sure about flow extraction here
             img1_recons = flow_warp(img2_scaled, flow21)
 

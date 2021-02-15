@@ -72,18 +72,8 @@ class PWC3D(nn.Module):
             if layer.bias is not None:
                 nn.init.constant_(layer.bias, 0)
 
-    def forward(self, x1: torch.Tensor, x2: torch.Tensor):
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor, vox_dim):
 
-        x1_voxdim = x1[1]
-        # tio.Image(tensor=x1[0], spacing=x1_voxdim).plot()
-        x1 = x1[0].unsqueeze(1).float()  # Add channel dimension
-        x2_voxdim = x2[1]
-        # tio.Image(tensor=x2[0], spacing=x1_voxdim).plot()
-        x2 = x2[0].unsqueeze(1).float()
-
-        log(x1.size())
-        log(x1[0])
-        # TODO: features extractor voodo goes here
         x1_p = self.feature_pyramid_extractor(x1) + [x1]
         x2_p = self.feature_pyramid_extractor(x2) + [x2]
 
@@ -92,7 +82,7 @@ class PWC3D(nn.Module):
         # init
         flows = []
         N, C, H, W, D = x1_p[0].size()
-        print(f'Got batch of size {N}')
+        log(f'Got batch of size {N}')
         init_dtype = x1_p[0].dtype
         init_device = x1_p[0].device
         flow21 = torch.zeros(N, 3, H, W, D, dtype=init_dtype, device=init_device).float()

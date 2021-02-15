@@ -23,12 +23,14 @@ class TrainFramework(BaseTrainer):
 
         for i_step, data in enumerate(self.train_loader):
 
+            # Prepare data
             img1, img2, _ = data
-            vox_dim = img1[1][0]
-            res = self.model(img1, img2)
+            vox_dim = img1[1][0].to(self.device)
+            img1, img2 = img1[0].to(self.device), img2[0].to(self.device)
+            img1 = img1.unsqueeze(1).float()  # Add channel dimension
+            img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
-            img1 = img1[0].unsqueeze(1).float()  # Add channel dimension
-            img2 = img2[0].unsqueeze(1).float()  # Add channel dimension
+            res = self.model(img1, img2, vox_dim=vox_dim)
 
             loss, l_ph, l_sm = self.loss_func(res, img1, img2, vox_dim)
             
@@ -66,25 +68,26 @@ class TrainFramework(BaseTrainer):
         loss = 0
 
         for i_step, data in enumerate(self.valid_loader):
-            log(f'Validating sample {i_step+1}')
+
+            # Prepare data
             img1, img2, flow12 = data
-            vox_dim = img1[1][0]
-            log(f'img1.size()={img1[0].size()}, img2.size()={img2[0].size()}, flow12.size()={flow12[0].size()}')
-            output = self.model(img1, img2)
+            vox_dim = img1[1][0].to(self.device)
+            img1, img2, flow12 = img1[0].to(self.device), img2[0].to(self.device), flow12[0].to(self.device)
+            img1 = img1.unsqueeze(1).float()  # Add channel dimension
+            img2 = img2.unsqueeze(1).float()  # Add channel dimension
+
+            output = self.model(img1, img2, vox_dim=vox_dim)
 
             log(f'flow_size = {output[0].size()}')
             log(f'flow_size = {output[0].shape}')
 
-            flow12_net = output[0].squeeze(0).float()  # Remove batch dimension, net prediction
-            flow12 = flow12[0]  # This is the 'ground_truth' flow
+            flow12_net = output[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
             epe_map = np.sqrt(
                 np.sum(np.square(flow12.detach().numpy() - flow12_net.detach().numpy()))
             )
             error += epe_map.mean()
             log(error)
 
-            img1 = img1[0].unsqueeze(1).float()  # Add channel dimension
-            img2 = img2[0].unsqueeze(1).float()  # Add channel dimension
             _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
             loss += _loss
 
