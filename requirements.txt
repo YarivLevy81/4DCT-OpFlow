@@ -52,7 +52,7 @@ zipp==3.3.1
 pydicom~=2.1.1
 matplotlib~=3.1.1
 scikit-build
-scipy~=1.6.0
+scipy~=1.5.4
 easydict~=1.9
 torchio~=0.18.15
 tensorboard

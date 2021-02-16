@@ -28,6 +28,8 @@ class BaseTrainer:
         self.i_epoch = 1
         self.i_iter = 1
 
+        self.model_suffix = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
     def train(self):
         for epoch in range(self.args.epochs):
             self._run_one_epoch()
@@ -35,11 +37,15 @@ class BaseTrainer:
             if self.i_epoch % self.args.log_interval == 0:
                 error, loss = self._validate()
                 print(f'Epoch {self.i_epoch}, Error={error}')
+            if self.i_epoch % self.args.save_interval == 0:
+                self.save_model(error, f'4DCT_{self.model_suffix}_{self.i_epoch}')
+
             self.i_epoch += 1
 
+        e = '%.3f' % error
+        l = '%.3f' % loss
         # TODO: save with error
-        model_suffix = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        self.save_model(error, f'4DCT_{model_suffix}')
+        self.save_model(error, f'4DCT_{self.model_suffix}_{self.args.epochs}_e{e}_l{l}')
 
     @abstractmethod
     def _run_one_epoch(self):

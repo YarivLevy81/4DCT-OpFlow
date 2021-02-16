@@ -37,18 +37,19 @@ if __name__ == '__main__':
 
     # TODO: change batch size to args.batch_size
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=1, #args.batch_size,
-        num_workers=args.num_workers, pin_memory=False, shuffle=True
+        train_set, batch_size=args.batch_size,
+        num_workers=args.num_workers, pin_memory=True, shuffle=True
     )
 
     valid_loader = torch.utils.data.DataLoader(
-        valid_set, batch_size=1, #args.batch_size,
+        valid_set, batch_size=args.batch_size,
         num_workers=args.num_workers, pin_memory=True, shuffle=True
     )
 
     model = get_model(args)
     loss = get_loss(args)
     trainer = get_trainer()(
-        train_loader, valid_loader, model, loss, args)
+        train_loader, valid_loader, model, loss, args
+    )
 
     trainer.train()
