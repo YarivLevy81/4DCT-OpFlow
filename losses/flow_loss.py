@@ -60,6 +60,7 @@ class UnFlowLoss(nn.modules.Module):
 
     def forward(self, output, img1, img2, vox_dim):
         log("Computing loss")
+        vox_dim=vox_dim.squeeze(0)
 
         pyramid_flows = output
 
@@ -119,7 +120,7 @@ def TernaryLoss(img, img_warp, max_distance=1):
     def _ternary_transform(image):
         log(f'Image size={image.size()}')
         # intensities = _rgb_to_grayscale(image) * 255
-        intensities = image  # Should be a normalized grayscale
+        # Should be a normalized grayscale
         out_channels = patch_size * patch_size * patch_size
         
         w = torch.eye(patch_size) # Identity 2D-tensor of size out_channels
@@ -128,20 +129,20 @@ def TernaryLoss(img, img_warp, max_distance=1):
         
         #w = torch.eye(out_channels).view(
         #    (out_channels, 1, patch_size, patch_size, patch_size))
-        weights = w.type_as(img)
-        log(f'weights size={weights.size()}')
+        w = w.type_as(img)
+        log(f'weights size={w.size()}')
         #patches = F.conv3d(intensities, weights, padding=max_distance, stride=1)
-        patches = F.conv3d(intensities, weights, padding=max_distance)
+        patches = F.conv3d(image, w, padding=max_distance)
         log(f'patches size={patches.size()}')
-        transf = patches - intensities
-        transf_norm = transf / torch.sqrt(0.81 + torch.pow(transf, 2))
-        return transf_norm
+        transf = patches - image
+        transf = transf / torch.sqrt(0.81 + torch.pow(transf, 2)) #norm
+        return transf
 
     def _hamming_distance(t1, t2):
         dist = torch.pow(t1 - t2, 2)
-        dist_norm = dist / (0.1 + dist)
-        dist_mean = torch.mean(dist_norm, 1, keepdim=True)  # instead of sum
-        return dist_mean
+        dist = dist / (0.1 + dist) #norm
+        dist = torch.mean(dist, 1, keepdim=True)  #  mean instead of sum
+        return dist
 
     def _valid_mask(t, padding):
         N, C, H, W, D  = t.size()
@@ -170,7 +171,6 @@ def SSIM(x, y, md=1):
     mu_x_mu_y = mu_x * mu_y
     mu_x_sq = mu_x.pow(2)
     mu_y_sq = mu_y.pow(2)
-
     sigma_x = nn.AvgPool3d(patch_size, 1, 0)(x * x) - mu_x_sq
     sigma_y = nn.AvgPool3d(patch_size, 1, 0)(y * y) - mu_y_sq
     sigma_xy = nn.AvgPool3d(patch_size, 1, 0)(x * y) - mu_x_mu_y

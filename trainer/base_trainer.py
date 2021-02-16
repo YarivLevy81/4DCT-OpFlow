@@ -16,6 +16,7 @@ class BaseTrainer:
         self.train_loader = train_loader
         self.valid_loader = valid_loader
         self.device, self.device_ids = self._init_device(args.n_gpu)
+        print(self.device, self.device_ids)
         self.args = args
 
         self.model = self._init_model(model)

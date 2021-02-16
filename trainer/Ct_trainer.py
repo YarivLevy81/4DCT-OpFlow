@@ -26,7 +26,7 @@ class TrainFramework(BaseTrainer):
 
             # Prepare data
             img1, img2, _ = data
-            vox_dim = img1[1][0].to(self.device)
+            vox_dim = img1[1].to(self.device)
             img1, img2 = img1[0].to(self.device), img2[0].to(self.device)
             img1 = img1.unsqueeze(1).float()  # Add channel dimension
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
