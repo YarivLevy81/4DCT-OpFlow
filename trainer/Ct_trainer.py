@@ -35,11 +35,12 @@ class TrainFramework(BaseTrainer):
 
             torch.cuda.empty_cache()
             loss, l_ph, l_sm = self.loss_func(res, img1, img2, vox_dim)
-            
+            # print(f'{loss} {l_ph} {l_sm}')
             # update meters
             key_meters.update(
-                [loss.item(), l_ph.item(), l_sm.item()],
+                [loss.mean().item(), l_ph.mean().item(), l_sm.mean().item()],
                 img1.size(0))
+            loss = loss.mean()
 
             self.optimizer.zero_grad()
 
@@ -47,7 +48,7 @@ class TrainFramework(BaseTrainer):
             print(f'Info = {key_meters}')
             #loss = 1024. * loss  # That's what they do in ARFlow
             self.writer.add_scalar('Training Loss',
-                                    loss,
+                                    loss.mean().item(),
                                     self.i_iter)
             loss.backward()
 
@@ -69,14 +70,18 @@ class TrainFramework(BaseTrainer):
         error = 0
         loss = 0
 
+
+
         for i_step, data in enumerate(self.valid_loader):
+            torch.cuda.empty_cache()
+
 
             # Prepare data
             img1, img2, flow12 = data
-            vox_dim = img1[1][0].to(self.device)
+            vox_dim = img1[1].to(self.device)
             img1, img2, flow12 = img1[0].to(self.device), img2[0].to(self.device), flow12[0].to(self.device)
-            img1 = img1.unsqueeze(1).float()  # Add channel dimension
-            img2 = img2.unsqueeze(1).float()  # Add channel dimension
+            img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
+            img2 = img2.unsqueeze(1).float().to(self.device)  # Add channel dimension
 
             output = self.model.module(img1, img2, vox_dim=vox_dim)
 
@@ -84,14 +89,17 @@ class TrainFramework(BaseTrainer):
             log(f'flow_size = {output[0].shape}')
 
             flow12_net = output[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
-            epe_map = np.sqrt(
-                np.sum(np.square(flow12.detach().numpy() - flow12_net.detach().numpy()))
-            )
-            error += epe_map.mean()
+            epe_map = torch.sqrt(
+                torch.sum(torch.square(flow12 - flow12_net))).to(self.device).mean()
+            error += float(epe_map.mean().item())
             log(error)
+            
+            torch.cuda.empty_cache()
 
             _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
-            loss += _loss
+            loss += float(_loss.mean().item())
+            
+            
 
         error /= len(self.valid_loader)
         loss /= len(self.valid_loader)

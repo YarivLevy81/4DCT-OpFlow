@@ -49,10 +49,15 @@ class CT_4DDataset(Dataset):
 
         self.patient_directories = sorted(self.patient_directories)
 
+        #import zipfile
         for directory in self.patient_directories:
             dir_files = []
             for file in directory.iterdir():
-                if file.is_file():
+                # print(file)
+                # z = zipfile.ZipFile(file)
+                # if z.testzip() is not None:
+                #     print(file)
+                if file.is_file() and file.suffix == '.npz':
                     dir_files.append(file)
             dir_files.sort(key=take_name)
             if len(list(directory.glob('*(256, 256*'))) > 0:

@@ -37,15 +37,16 @@ class UnFlowLoss(nn.modules.Module):
             )]
             '''
 
-        if self.args.w_ternary > 0:
+        if self.args.w_ternary > 2:
             loss += [self.args.w_ternary * TernaryLoss(img1_recons, img1_scaled)]
-
+        '''
         loss_val = 0
         for l in loss:
             mean = l.mean()
             log(f'Loss -> {mean}')
             loss_val += mean
-        return loss_val
+        '''
+        return sum([l.mean() for l in loss])
 
     def loss_smooth(self, flow, img1_scaled, vox_dim):
         # if 'smooth_2nd' in self.cfg and self.cfg.smooth_2nd:
@@ -102,6 +103,8 @@ class UnFlowLoss(nn.modules.Module):
 
         loss_smooth = sum(pyramid_smooth_losses)
         loss_warp = sum(pyramid_warp_losses)
+        # print(f'{loss_smooth}')
+        # print(f'{loss_warp}')
         loss_total = loss_smooth + loss_warp
 
         return loss_total, loss_warp, loss_smooth
