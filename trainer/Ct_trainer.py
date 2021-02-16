@@ -4,6 +4,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
 import numpy as np
 from losses.flow_loss import get_loss
+import torch
 
 
 class TrainFramework(BaseTrainer):
@@ -30,8 +31,9 @@ class TrainFramework(BaseTrainer):
             img1 = img1.unsqueeze(1).float()  # Add channel dimension
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
-            res = self.model(img1, img2, vox_dim=vox_dim)
+            res = self.model.module(img1, img2, vox_dim=vox_dim)
 
+            torch.cuda.empty_cache()
             loss, l_ph, l_sm = self.loss_func(res, img1, img2, vox_dim)
             
             # update meters
@@ -56,8 +58,8 @@ class TrainFramework(BaseTrainer):
                 #param.grad.data.mul_(1. / 1024)
             log(f'Gradient data: len(requires_grad_params): {len(required_grad_params)}, '
                   f'mean_gard_norm={mean_grad_norm/len(required_grad_params)}, '
-                  f'model_params={self.model.parameters(True)}'
-                  f'num_params={sum(p.numel() for p in self.model.parameters() if p.requires_grad)}')
+                  f'model_params={self.model.module.parameters(True)}'
+                  f'num_params={sum(p.numel() for p in self.model.module.parameters() if p.requires_grad)}')
 
             self.optimizer.step()
             self.i_iter += 1
@@ -76,7 +78,7 @@ class TrainFramework(BaseTrainer):
             img1 = img1.unsqueeze(1).float()  # Add channel dimension
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
-            output = self.model(img1, img2, vox_dim=vox_dim)
+            output = self.model.module(img1, img2, vox_dim=vox_dim)
 
             log(f'flow_size = {output[0].size()}')
             log(f'flow_size = {output[0].shape}')

@@ -19,9 +19,10 @@ class BaseTrainer:
         self.args = args
 
         self.model = self._init_model(model)
-        self.model.apply(self.model.init_weights)
+        self.model.apply(self.model.module.init_weights)
         self.optimizer = self._get_optimizer()
         self.loss_func = loss_func
+        self.loss_func = torch.nn.DataParallel(self.loss_func, device_ids=self.device_ids)
 
         self.best_error = np.inf
         self.save_root = pathlib.Path(f'./models/dir')
@@ -84,8 +85,13 @@ class BaseTrainer:
             print("=> Train from scratch")
 
         if torch.cuda.device_count() > 1 and self.device != torch.device('cpu'):
+            #from torch.nn.parallel import DistributedDataParallel as DDP
+            #import torch.distributed as dist
+            #dist.init_process_group(backend="nccl", rank=8)
+            
             print(f'Data parlelling the model')
             model = torch.nn.DataParallel(model, device_ids=self.device_ids)
+            #model = DDP(model, device_ids=self.device_ids)
 
         return model
 
@@ -103,6 +109,7 @@ class BaseTrainer:
                 "Warning: The number of GPU\'s configured to use is {}, "
                 "but only {} are available.".format(n_gpu_use, n_gpu))
             n_gpu_use = n_gpu
+        print(f'n_gpu={n_gpu}')
         device = torch.device('cuda:0' if n_gpu_use > 0 else 'cpu')
         list_ids = list(range(n_gpu_use))
         return device, list_ids
@@ -114,6 +121,6 @@ class BaseTrainer:
         #     self.best_error = error
 
         models = {'epoch': self.i_epoch,
-                  'state_dict': self.model.state_dict()}
+                  'state_dict': self.model.module.state_dict()}
 
         save_checkpoint(self.save_root, models, name, is_best=False)
