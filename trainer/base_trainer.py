@@ -26,7 +26,7 @@ class BaseTrainer:
         self.loss_func = torch.nn.DataParallel(self.loss_func, device_ids=self.device_ids)
 
         self.best_error = np.inf
-        self.save_root = pathlib.Path(f'./models/dir')
+        self.save_root = pathlib.Path(self.args.checkpoint_path)
         self.i_epoch = 1
         self.i_iter = 1
 
@@ -69,9 +69,9 @@ class BaseTrainer:
 
     def _init_model(self, model):
         model = model.to(self.device)
-        if self.args.pretrained_model:
-            print(f'Loading model from {self.args.pretrained_model}')
-            epoch, weights = load_checkpoint(self.args.pretrained_model)
+        if self.args.load:
+            print(f'Loading model from {self.args.load}')
+            epoch, weights = load_checkpoint(self.args.load)
 
             from collections import OrderedDict
             new_weights = OrderedDict()

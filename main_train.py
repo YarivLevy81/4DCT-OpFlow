@@ -16,15 +16,14 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', default='configs/base.json', help="Path (absolute or relative) for 4DCT data")
     parser.add_argument('-v', '--verbose', action='store_true', help="Verbose logs") 
     parser.add_argument('-p', '--plot', action='store_true', help="Plot samples along training")
-    parser.add_argument('-l', '--load', default='./models/dir/4dct_ckpt.pth.tar', help="Model .pth.tar file")
+    parser.add_argument('-l', '--load', help="Model .pth.tar file")
     args = parser.parse_args()
 
     VERBOSE = args.verbose
+    load = args.load
     with open(args.config) as f:
         args = EasyDict(json.load(f))
-
-    if 'load' not in args:
-        args.pretrained_model = None
+    args.load = load
 
     print(f'<<<<< Init experiement >>>>>')
     print(f'args={args}')
