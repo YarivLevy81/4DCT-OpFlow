@@ -35,6 +35,44 @@ def plot_image(
     return slice_x, slice_y, slice_z
 
 
+def plot_images(
+        img1,img2,
+        axes=None,
+        output_path=None,
+        show=True,
+):
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(2, 3)
+    while len(img1.shape) > 3:
+        img1 = img1.squeeze(0)
+    while len(img2.shape) > 3:
+        img2 = img2.squeeze(0)
+    indices = np.array(img1.shape) // 2
+    i, j, k = indices
+    slice_x_1 = rotate(img1[i, :, :])
+    slice_y_1 = rotate(img1[:, j, :])
+    slice_z_1 = rotate(img1[:, :, k])
+    slice_x_2 = rotate(img2[i, :, :])
+    slice_y_2 = rotate(img2[:, j, :])
+    slice_z_2 = rotate(img2[:, :, k])
+    kwargs = {}
+    kwargs['cmap'] = 'gray'
+    x_extent, y_extent, z_extent = [(0, b - 1) for b in img1.shape]
+    axes[0][0].imshow(slice_x_1, extent=y_extent + z_extent, **kwargs)
+    axes[0][1].imshow(slice_y_1, extent=x_extent + z_extent, **kwargs)
+    axes[0][2].imshow(slice_z_1, extent=x_extent + y_extent, **kwargs)
+    axes[1][0].imshow(slice_x_2, extent=y_extent + z_extent, **kwargs)
+    axes[1][1].imshow(slice_y_2, extent=x_extent + z_extent, **kwargs)
+    axes[1][2].imshow(slice_z_2, extent=x_extent + y_extent, **kwargs)
+    plt.tight_layout()
+    if output_path is not None and fig is not None:
+        fig.savefig(output_path)
+    if show:
+        plt.show()
+    return fig
+
+
 def rotate(image):
     return np.rot90(image)
 
@@ -71,4 +109,5 @@ def plot_flow(flow,
         fig.savefig(output_path)
     if show:
         plt.show()
-    return slice_x_flow_col, slice_y_flow_col, slice_z_flow_col
+    #return slice_x_flow_col, slice_y_flow_col, slice_z_flow_col
+    return fig

@@ -2,7 +2,7 @@ from .base_trainer import BaseTrainer
 from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
-from utils.visualization_utils import plot_flow, plot_image
+from utils.visualization_utils import plot_flow, plot_image, plot_images
 import numpy as np
 from losses.flow_loss import get_loss
 import torch
@@ -98,6 +98,7 @@ class TrainFramework(BaseTrainer):
 
             _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
             loss += float(_loss.mean().item())
+            #break
              
 
         error /= len(self.valid_loader)
@@ -114,11 +115,19 @@ class TrainFramework(BaseTrainer):
                                self.i_epoch)
 
         
-        p_imgs = [plot_image(im.detach().cpu(), show=False) for im in [img1, img2]]
-        p_conc_imgs= np.concatenate(p_imgs[0][:1]+p_imgs[1][:1])[np.newaxis][np.newaxis]
-        p_flows = [plot_flow(fl.detach().cpu(), show=False) for fl in [flow12,flow12_net]]
-        p_flows_conc = np.transpose(np.concatenate(p_flows[0][:1]+p_flows[1][:1]),(2,0,1))[np.newaxis]
-        self.writer.add_images('Valid_Images_{}'.format(self.i_epoch), p_conc_imgs, self.i_epoch)                       
-        self.writer.add_images('Valid_Flows_{}'.format(self.i_epoch), p_flows_conc, self.i_epoch)     
+        # p_imgs = [plot_image(im.detach().cpu(), show=False) for im in [img1, img2]]
+        # p_conc_imgs= np.concatenate((np.concatenate(p_imgs[0][:1]+p_imgs[1][:1]),p_imgs[0][2]+p_imgs[1][2]))[np.newaxis][np.newaxis]
+        # p_flows = [plot_flow(fl.detach().cpu(), show=False) for fl in [flow12,flow12_net]]
+        # p_flows_conc = np.transpose(np.concatenate((np.concatenate(p_flows[0][:1]+p_flows[1][:1]),)),(2,0,1))[np.newaxis]
+        # self.writer.add_images('Valid_Images_{}'.format(self.i_epoch), p_conc_imgs, self.i_epoch)                       
+        # self.writer.add_images('Valid_Flows_{}'.format(self.i_epoch), p_flows_conc, self.i_epoch)
+
+        p_img_fig = plot_images(img1.detach().cpu(), img2.detach().cpu())
+        p_flo_gt = plot_flow(flow12.detach().cpu())
+        p_flo = plot_flow(flow12_net.detach().cpu())
+        self.writer.add_figure('Valid_Images_{}'.format(self.i_epoch), p_img_fig, self.i_epoch)                       
+        self.writer.add_figure('Valid_Flows_gt_{}'.format(self.i_epoch), p_flo_gt, self.i_epoch)
+        self.writer.add_figure('Valid_Flows_{}'.format(self.i_epoch), p_flo, self.i_epoch)
+
 
         return error, loss
