@@ -32,6 +32,7 @@ def plot_image(
         fig.savefig(output_path)
     if show:
         plt.show()
+    return slice_x, slice_y, slice_z
 
 
 def rotate(image):
@@ -70,3 +71,4 @@ def plot_flow(flow,
         fig.savefig(output_path)
     if show:
         plt.show()
+    return slice_x_flow_col, slice_y_flow_col, slice_z_flow_col

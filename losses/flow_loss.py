@@ -55,6 +55,11 @@ class UnFlowLoss(nn.modules.Module):
         #    func_smooth = smooth_grad_1st
         func_smooth = smooth_grad_1st
 
+        # loss = 0
+        # loss += func_smooth(flow, img1_scaled, vox_dim, self.args.alpha).mean()
+        # return loss
+
+        
         loss = []
         loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
         return sum([l.mean() for l in loss])
@@ -67,6 +72,9 @@ class UnFlowLoss(nn.modules.Module):
 
         pyramid_warp_losses = []
         pyramid_smooth_losses = []
+
+        # pyramid_warp_losses = 0
+        # pyramid_smooth_losses = 0
 
         s = 1.
         for i, flow in enumerate(pyramid_flows):
@@ -94,6 +102,8 @@ class UnFlowLoss(nn.modules.Module):
             
             pyramid_smooth_losses.append(loss_smooth)
             pyramid_warp_losses.append(loss_warp)
+            # pyramid_smooth_losses+=loss_smooth*self.args.w_sm_scales[i]
+            # pyramid_warp_losses+=loss_smooth*self.args.w_scales[i]
 
         pyramid_warp_losses = [l * w for l, w in
                                zip(pyramid_warp_losses, self.args.w_scales)]
@@ -103,6 +113,9 @@ class UnFlowLoss(nn.modules.Module):
 
         loss_smooth = sum(pyramid_smooth_losses)
         loss_warp = sum(pyramid_warp_losses)
+        # loss_smooth = pyramid_smooth_losses
+        # loss_warp = pyramid_warp_losses
+        
         # print(f'{loss_smooth}')
         # print(f'{loss_warp}')
         loss_total = loss_smooth + loss_warp
@@ -186,9 +199,26 @@ def SSIM(x, y, md=1):
 
 
 def gradient(data, vox_dims=(1, 1, 1)):
-    D_dy = (data[:, :, 1:] - data[:, :, :-1])/vox_dims[1]
-    D_dx = (data[:, :, :, 1:] - data[:, :, :, :-1])/vox_dims[0]
-    D_dz = (data[:, :, :, :, 1:] - data[:, :, :, :, :-1])/vox_dims[2]
+    if len(vox_dims.shape)>1:
+        batch = True
+        batch_size = vox_dims.shape[0]
+    else:
+        batch = False
+
+    if not batch:
+        D_dy = (data[:, :, 1:] - data[:, :, :-1])/vox_dims[1]
+        D_dx = (data[:, :, :, 1:] - data[:, :, :, :-1])/vox_dims[0]
+        D_dz = (data[:, :, :, :, 1:] - data[:, :, :, :, :-1])/vox_dims[2]
+    else:
+        D_dy = (data[:, :, 1:] - data[:, :, :-1])
+        D_dx = (data[:, :, :, 1:] - data[:, :, :, :-1])
+        D_dz = (data[:, :, :, :, 1:] - data[:, :, :, :, :-1])
+        for sample in range(batch_size):
+            #print(f"data:{data.shape}, voxdims:{vox_dims.shape}")
+            D_dy[sample] = D_dy[sample]/vox_dims[sample,1]
+            D_dx[sample] = D_dx[sample]/vox_dims[sample,0]
+            D_dz[sample] = D_dz[sample]/vox_dims[sample,2]
+
     return D_dx, D_dy, D_dz
 
 
@@ -207,7 +237,12 @@ def smooth_grad_1st(flo, image, vox_dims, alpha):
     loss_y = weights_y * dy.abs() / 2.
     loss_z = weights_z * dz.abs() / 2.
 
-    return loss_x.mean() / 3. + loss_y.mean() / 3. + loss_z / 3.
+    # dx = weights_x * dx.abs() / 2.
+    # dy = weights_y * dy.abs() / 2.
+    # dz = weights_z * dz.abs() / 2.
+
+    # return dx.mean() / 3. + dy.mean() / 3. + dz.mean() / 3.
+    return loss_x.mean() / 3. + loss_y.mean() / 3. + loss_z.mean() / 3.
 
 
 def smooth_grad_2nd(flo, image, alpha):

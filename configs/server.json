@@ -1,5 +1,5 @@
 {
-    "batch_size": 2,
+    "batch_size": 8,
     "num_workers": 8,
     "test_batch_size": 1000,
     "epochs": 10,

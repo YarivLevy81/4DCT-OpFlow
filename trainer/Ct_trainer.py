@@ -2,6 +2,7 @@ from .base_trainer import BaseTrainer
 from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
+from utils.visualization_utils import plot_flow, plot_image
 import numpy as np
 from losses.flow_loss import get_loss
 import torch
@@ -19,6 +20,7 @@ class TrainFramework(BaseTrainer):
         key_meter_names = ['Loss', 'l_ph', 'l_sm']
         key_meters = AverageMeter(i=len(key_meter_names), precision=4)
 
+        #self._validate()
         # puts the model in train mode
         self.model.train()
 
@@ -31,7 +33,7 @@ class TrainFramework(BaseTrainer):
             img1 = img1.unsqueeze(1).float()  # Add channel dimension
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
-            res = self.model.module(img1, img2, vox_dim=vox_dim)
+            res = self.model(img1, img2, vox_dim=vox_dim)
 
             torch.cuda.empty_cache()
             loss, l_ph, l_sm = self.loss_func(res, img1, img2, vox_dim)
@@ -73,8 +75,7 @@ class TrainFramework(BaseTrainer):
 
 
         for i_step, data in enumerate(self.valid_loader):
-            torch.cuda.empty_cache()
-
+            # torch.cuda.empty_cache()
 
             # Prepare data
             img1, img2, flow12 = data
@@ -83,7 +84,7 @@ class TrainFramework(BaseTrainer):
             img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
             img2 = img2.unsqueeze(1).float().to(self.device)  # Add channel dimension
 
-            output = self.model.module(img1, img2, vox_dim=vox_dim)
+            output = self.model(img1, img2, vox_dim=vox_dim)
 
             log(f'flow_size = {output[0].size()}')
             log(f'flow_size = {output[0].shape}')
@@ -94,12 +95,10 @@ class TrainFramework(BaseTrainer):
             error += float(epe_map.mean().item())
             log(error)
             
-            torch.cuda.empty_cache()
 
             _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
             loss += float(_loss.mean().item())
-            
-            
+             
 
         error /= len(self.valid_loader)
         loss /= len(self.valid_loader)
@@ -113,5 +112,13 @@ class TrainFramework(BaseTrainer):
         self.writer.add_scalar('Validation Loss',
                                loss,
                                self.i_epoch)
+
+        
+        p_imgs = [plot_image(im.detach().cpu(), show=False) for im in [img1, img2]]
+        p_conc_imgs= np.concatenate(p_imgs[0][:1]+p_imgs[1][:1])[np.newaxis][np.newaxis]
+        p_flows = [plot_flow(fl.detach().cpu(), show=False) for fl in [flow12,flow12_net]]
+        p_flows_conc = np.transpose(np.concatenate(p_flows[0][:1]+p_flows[1][:1]),(2,0,1))[np.newaxis]
+        self.writer.add_images('Valid_Images_{}'.format(self.i_epoch), p_conc_imgs, self.i_epoch)                       
+        self.writer.add_images('Valid_Flows_{}'.format(self.i_epoch), p_flows_conc, self.i_epoch)     
 
         return error, loss

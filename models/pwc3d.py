@@ -91,7 +91,7 @@ class PWC3D(nn.Module):
         log(f'forward init complete')
 
         for l, (_x1, _x2) in enumerate(zip(x1_p, x2_p)):
-            print(f'Level {l + 1} flow...')
+            log(f'Level {l + 1} flow...')
             # warping
             if l == 0:
                 x2_warp = _x2
