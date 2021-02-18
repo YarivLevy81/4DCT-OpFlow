@@ -2,7 +2,7 @@ from .base_trainer import BaseTrainer
 from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
-from utils.visualization_utils import plot_flow, plot_image, plot_images
+from utils.visualization_utils import plot_validation_fig, plot_training_fig
 import numpy as np
 from losses.flow_loss import get_loss
 import torch
@@ -20,7 +20,7 @@ class TrainFramework(BaseTrainer):
         key_meter_names = ['Loss', 'l_ph', 'l_sm']
         key_meters = AverageMeter(i=len(key_meter_names), precision=4)
 
-        #self._validate()
+        # self._validate()
         # puts the model in train mode
         self.model.train()
 
@@ -45,6 +45,11 @@ class TrainFramework(BaseTrainer):
             loss = loss.mean()
 
             self.optimizer.zero_grad()
+
+            if self.i_iter%50 == 0:
+                p_valid=plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(),res[0][0].detach().cpu(),show=False)
+                self.writer.add_figure('Training_Samples', p_valid, self.i_iter)
+
 
             print(f'Iteration {self.i_iter}, epoch {self.i_epoch}')
             print(f'Info = {key_meters}')
@@ -90,15 +95,16 @@ class TrainFramework(BaseTrainer):
             log(f'flow_size = {output[0].shape}')
 
             flow12_net = output[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
-            epe_map = torch.sqrt(
-                torch.sum(torch.square(flow12 - flow12_net))).to(self.device).mean()
+            # epe_map = torch.sqrt(
+            #     torch.sum(torch.square(flow12 - flow12_net))).to(self.device).mean()
+            epe_map = torch.abs(flow12-flow12_net).to(self.device).mean()
             error += float(epe_map.mean().item())
             log(error)
             
 
             _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
             loss += float(_loss.mean().item())
-            #break
+            # break
              
 
         error /= len(self.valid_loader)
@@ -122,12 +128,15 @@ class TrainFramework(BaseTrainer):
         # self.writer.add_images('Valid_Images_{}'.format(self.i_epoch), p_conc_imgs, self.i_epoch)                       
         # self.writer.add_images('Valid_Flows_{}'.format(self.i_epoch), p_flows_conc, self.i_epoch)
 
-        p_img_fig = plot_images(img1.detach().cpu(), img2.detach().cpu())
-        p_flo_gt = plot_flow(flow12.detach().cpu())
-        p_flo = plot_flow(flow12_net.detach().cpu())
-        self.writer.add_figure('Valid_Images_{}'.format(self.i_epoch), p_img_fig, self.i_epoch)                       
-        self.writer.add_figure('Valid_Flows_gt_{}'.format(self.i_epoch), p_flo_gt, self.i_epoch)
-        self.writer.add_figure('Valid_Flows_{}'.format(self.i_epoch), p_flo, self.i_epoch)
+        # p_img_fig = plot_images(img1.detach().cpu(), img2.detach().cpu())
+        # p_flo_gt = plot_flow(flow12.detach().cpu())
+        # p_flo = plot_flow(flow12_net.detach().cpu())
+        # self.writer.add_figure('Valid_Images_{}'.format(self.i_epoch), p_img_fig, self.i_epoch)                       
+        # self.writer.add_figure('Valid_Flows_gt_{}'.format(self.i_epoch), p_flo_gt, self.i_epoch)
+        # self.writer.add_figure('Valid_Flows_{}'.format(self.i_epoch), p_flo, self.i_epoch)
+
+        p_valid=plot_validation_fig(img1.detach().cpu(), img2.detach().cpu(),flow12.detach().cpu(),flow12_net.detach().cpu(),show=False)
+        self.writer.add_figure('Valid_Images', p_valid, self.i_epoch)
 
 
         return error, loss
