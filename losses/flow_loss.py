@@ -302,14 +302,19 @@ def gradient(data, vox_dims=(1, 1, 1)):
     return D_dx, D_dy, D_dz
 
 
-def smooth_grad_1st(flo, image, vox_dims, alpha):
-    img_dx, img_dy, img_dz = gradient(image, vox_dims)
-    weights_x = torch.exp(-torch.mean(torch.abs(img_dx),
-                                      1, keepdim=True) * alpha)
-    weights_y = torch.exp(-torch.mean(torch.abs(img_dy),
-                                      1, keepdim=True) * alpha)
-    weights_z = torch.exp(-torch.mean(torch.abs(img_dz),
-                                      1, keepdim=True) * alpha)
+def smooth_grad_1st(flo, image, vox_dims, alpha, flow_only=True):
+
+    weights_x = 1
+    weights_y = 1
+    weights_z = 1
+    if not flow_only:
+        img_dx, img_dy, img_dz = gradient(image, vox_dims)
+        weights_x = torch.exp(-torch.mean(torch.abs(img_dx),
+                                          1, keepdim=True) * alpha)
+        weights_y = torch.exp(-torch.mean(torch.abs(img_dy),
+                                          1, keepdim=True) * alpha)
+        weights_z = torch.exp(-torch.mean(torch.abs(img_dz),
+                                          1, keepdim=True) * alpha)
 
     dx, dy, dz = gradient(flo, vox_dims)
 
@@ -317,11 +322,6 @@ def smooth_grad_1st(flo, image, vox_dims, alpha):
     loss_y = weights_y * dy.abs() / 2.
     loss_z = weights_z * dz.abs() / 2.
 
-    # dx = weights_x * dx.abs() / 2.
-    # dy = weights_y * dy.abs() / 2.
-    # dz = weights_z * dz.abs() / 2.
-
-    # return dx.mean() / 3. + dy.mean() / 3. + dz.mean() / 3.
     return loss_x.mean() / 3. + loss_y.mean() / 3. + loss_z.mean() / 3.
 
 
