@@ -36,18 +36,18 @@ class TrainFramework(BaseTrainer):
             res = self.model(img1, img2, vox_dim=vox_dim)
 
             torch.cuda.empty_cache()
-            loss, l_ph, l_sm = self.loss_func(res, img1, img2, vox_dim)
+            loss, l_ph, l_sm, l_ncc = self.loss_func(res, img1, img2, vox_dim)
             # print(f'{loss} {l_ph} {l_sm}')
             # update meters
             key_meters.update(
-                [loss.mean().item(), l_ph.mean().item(), l_sm.mean().item()],
+                [loss.mean().item(), l_ph.mean().item(), l_sm.mean().item(), l_ncc.mean().item()],
                 img1.size(0))
             loss = loss.mean()
 
             self.optimizer.zero_grad()
 
-            if self.i_iter%50 == 0:
-                p_valid=plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(),res[0][0].detach().cpu(),show=False)
+            if self.i_iter % 50 == 0:
+                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(),res[0][0].detach().cpu(),show=False)
                 self.writer.add_figure('Training_Samples', p_valid, self.i_iter)
 
 

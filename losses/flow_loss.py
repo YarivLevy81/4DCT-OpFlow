@@ -4,6 +4,9 @@ import torch.nn.functional as F
 from utils.warp_utils import flow_warp
 from utils.misc import log
 
+# Loss blocks
+from losses.NCC import NCC
+
 
 def get_loss(args):
     return UnFlowLoss(args)
@@ -64,6 +67,9 @@ class UnFlowLoss(nn.modules.Module):
         loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
         return sum([l.mean() for l in loss])
 
+    def loss_ncc(self, img, img_warped):
+        return self.args.w_ncc * NCC(img, img_warped)
+
     def forward(self, output, img1, img2, vox_dim):
         log("Computing loss")
         vox_dim=vox_dim.squeeze(0)
@@ -72,6 +78,7 @@ class UnFlowLoss(nn.modules.Module):
 
         pyramid_warp_losses = []
         pyramid_smooth_losses = []
+        pyramid_ncc_losses = []
 
         # pyramid_warp_losses = 0
         # pyramid_smooth_losses = 0
@@ -97,11 +104,14 @@ class UnFlowLoss(nn.modules.Module):
             loss_smooth = self.loss_smooth(
                 flow=flow21 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_warp = self.loss_photometric(img1_scaled, img1_recons)
+            loss_ncc = self.loss_ncc(img1_scaled, img1_recons)
 
-            log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}')
+            log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}'
+                f'loss_ncc={loss_ncc}')
             
             pyramid_smooth_losses.append(loss_smooth)
             pyramid_warp_losses.append(loss_warp)
+            pyramid_ncc_losses.append(loss_ncc)
             # pyramid_smooth_losses+=loss_smooth*self.args.w_sm_scales[i]
             # pyramid_warp_losses+=loss_smooth*self.args.w_scales[i]
             torch.cuda.empty_cache()
@@ -110,18 +120,21 @@ class UnFlowLoss(nn.modules.Module):
                                zip(pyramid_warp_losses, self.args.w_scales)]
         pyramid_smooth_losses = [l * w for l, w in
                                  zip(pyramid_smooth_losses, self.args.w_sm_scales)]
+        pyramid_smooth_losses = [l * w for l, w in
+                                 zip(pyramid_ncc_losses, self.args.w_ncc_scales)]
         log(f'Weighting losses')
 
         loss_smooth = sum(pyramid_smooth_losses)
         loss_warp = sum(pyramid_warp_losses)
+        loss_ncc = sum(pyramid_ncc_losses)
         # loss_smooth = pyramid_smooth_losses
         # loss_warp = pyramid_warp_losses
         
         # print(f'{loss_smooth}')
         # print(f'{loss_warp}')
-        loss_total = loss_smooth + loss_warp
+        loss_total = loss_smooth + loss_warp + loss_ncc
 
-        return loss_total, loss_warp, loss_smooth
+        return loss_total, loss_warp, loss_smooth, loss_ncc
 
 
 # Crecit: https://github.com/simonmeister/UnFlow/blob/master/src/e2eflow/core/losses.py
