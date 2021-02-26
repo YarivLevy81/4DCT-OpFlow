@@ -9,6 +9,9 @@ from losses.NCC import NCC
 
 
 def get_loss(args):
+    if args.loss == "ncc":
+        return NCCLoss(args)
+
     return UnFlowLoss(args)
 
 
@@ -61,14 +64,11 @@ class UnFlowLoss(nn.modules.Module):
         # loss = 0
         # loss += func_smooth(flow, img1_scaled, vox_dim, self.args.alpha).mean()
         # return loss
-
         
         loss = []
         loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
         return sum([l.mean() for l in loss])
 
-    def loss_ncc(self, img, img_warped):
-        return self.args.w_ncc * NCC(img, img_warped)
 
     def forward(self, output, img1, img2, vox_dim):
         log("Computing loss")
@@ -78,7 +78,6 @@ class UnFlowLoss(nn.modules.Module):
 
         pyramid_warp_losses = []
         pyramid_smooth_losses = []
-        pyramid_ncc_losses = []
 
         # pyramid_warp_losses = 0
         # pyramid_smooth_losses = 0
@@ -104,14 +103,11 @@ class UnFlowLoss(nn.modules.Module):
             loss_smooth = self.loss_smooth(
                 flow=flow21 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_warp = self.loss_photometric(img1_scaled, img1_recons)
-            loss_ncc = self.loss_ncc(img1_scaled, img1_recons)
 
-            log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}'
-                f'loss_ncc={loss_ncc}')
-            
+            log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}')
+
             pyramid_smooth_losses.append(loss_smooth)
             pyramid_warp_losses.append(loss_warp)
-            pyramid_ncc_losses.append(loss_ncc)
             # pyramid_smooth_losses+=loss_smooth*self.args.w_sm_scales[i]
             # pyramid_warp_losses+=loss_smooth*self.args.w_scales[i]
             torch.cuda.empty_cache()
@@ -120,21 +116,91 @@ class UnFlowLoss(nn.modules.Module):
                                zip(pyramid_warp_losses, self.args.w_scales)]
         pyramid_smooth_losses = [l * w for l, w in
                                  zip(pyramid_smooth_losses, self.args.w_sm_scales)]
-        pyramid_smooth_losses = [l * w for l, w in
-                                 zip(pyramid_ncc_losses, self.args.w_ncc_scales)]
-        log(f'Weighting losses')
 
         loss_smooth = sum(pyramid_smooth_losses)
         loss_warp = sum(pyramid_warp_losses)
-        loss_ncc = sum(pyramid_ncc_losses)
         # loss_smooth = pyramid_smooth_losses
         # loss_warp = pyramid_warp_losses
         
         # print(f'{loss_smooth}')
         # print(f'{loss_warp}')
-        loss_total = loss_smooth + loss_warp + loss_ncc
+        loss_total = loss_smooth + loss_warp
 
-        return loss_total, loss_warp, loss_smooth, loss_ncc
+        return loss_total, loss_warp, loss_smooth
+
+
+class NCCLoss(nn.modules.Module):
+    def __init__(self, args):
+        super(NCCLoss, self).__init__()
+        self.args = args
+
+    def loss_smooth(self, flow, img1_scaled, vox_dim):
+        # if 'smooth_2nd' in self.cfg and self.cfg.smooth_2nd:
+        #    func_smooth = smooth_grad_2nd
+        # else:
+        #    func_smooth = smooth_grad_1st
+        func_smooth = smooth_grad_1st
+
+        # loss = 0
+        # loss += func_smooth(flow, img1_scaled, vox_dim, self.args.alpha).mean()
+        # return loss
+
+        loss = []
+        loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
+        return sum([l.mean() for l in loss])
+
+    def loss_ncc(self, img, img_warped):
+        return NCC(img, img_warped)
+
+    def forward(self, output, img1, img2, vox_dim):
+        log("Computing loss")
+        vox_dim = vox_dim.squeeze(0)
+
+        pyramid_flows = output
+
+        pyramid_smooth_losses = []
+        pyramid_ncc_losses = []
+
+        s = 1.
+        for i, flow in enumerate(pyramid_flows):
+            log(f'Aggregating loss of pyramid level {i + 1}')
+            log(f'Aggregating loss of pyramid level {i + 1}')
+
+            N, C, H, W, D = flow.size()
+
+            img1_scaled = F.interpolate(img1, (H, W, D), mode='area')
+            # Only needed if we aggregate flow21 and dowing backward computation
+            img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
+
+            flow21 = flow[:, :3]
+            # Not sure about flow extraction here
+            img1_recons = flow_warp(img2_scaled, flow21)
+
+            if i == 0:
+                s = min(H, W, D)
+
+            loss_smooth = self.loss_smooth(
+                    flow=flow21 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
+            loss_ncc = self.loss_ncc(img1_scaled, img1_recons)
+
+            log(f'Computed losses for level {i + 1}: loss_smoth={loss_smooth}'
+                f'loss_ncc={loss_ncc}')
+
+            pyramid_smooth_losses.append(loss_smooth)
+            pyramid_ncc_losses.append(loss_ncc)
+            torch.cuda.empty_cache()
+
+        pyramid_smooth_losses = [l * w for l, w in
+                                 zip(pyramid_smooth_losses, self.args.w_sm_scales)]
+        pyramid_ncc_losses = [l * w for l, w in
+                              zip(pyramid_ncc_losses, self.args.w_ncc_scales)]
+        log(f'Weighting losses')
+
+        loss_smooth = sum(pyramid_smooth_losses)
+        loss_ncc = sum(pyramid_ncc_losses)
+        loss_total = loss_smooth + loss_ncc
+
+        return loss_total, loss_smooth, loss_ncc
 
 
 # Crecit: https://github.com/simonmeister/UnFlow/blob/master/src/e2eflow/core/losses.py
@@ -213,7 +279,7 @@ def SSIM(x, y, md=1):
 
 
 def gradient(data, vox_dims=(1, 1, 1)):
-    if len(vox_dims.shape)>1:
+    if len(vox_dims.shape) > 1:
         batch = True
         batch_size = vox_dims.shape[0]
     else:
@@ -229,9 +295,9 @@ def gradient(data, vox_dims=(1, 1, 1)):
         D_dz = (data[:, :, :, :, 1:] - data[:, :, :, :, :-1])
         for sample in range(batch_size):
             #print(f"data:{data.shape}, voxdims:{vox_dims.shape}")
-            D_dy[sample] = D_dy[sample]/vox_dims[sample,1]
-            D_dx[sample] = D_dx[sample]/vox_dims[sample,0]
-            D_dz[sample] = D_dz[sample]/vox_dims[sample,2]
+            D_dy[sample] = D_dy[sample]/vox_dims[sample, 1]
+            D_dx[sample] = D_dx[sample]/vox_dims[sample, 0]
+            D_dz[sample] = D_dz[sample]/vox_dims[sample, 2]
 
     return D_dx, D_dy, D_dz
 

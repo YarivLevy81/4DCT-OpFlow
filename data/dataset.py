@@ -124,7 +124,8 @@ def get_dataset(root="./raw", w_aug=False, data_type='train'):
     if data_type == 'train':
         return CT_4DDataset(root=root, w_aug=w_aug)
     if data_type == 'valid':
-        return CT_4DValidationset(root)
+        return CT_4DDataset(root=root, w_aug=w_aug)
+        #return CT_4DValidationset(root)
 
 
 def take_name(file_path):
