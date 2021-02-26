@@ -2,7 +2,7 @@
     "batch_size": 8,
     "num_workers": 8,
     "test_batch_size": 1000,
-    "epochs": 12,
+    "epochs": 50,
     "lr": 0.0001,
     "gamma": 0.7,
     "no_cuda": false,
@@ -10,10 +10,12 @@
     "log_interval": 1,
     "save_interval": 4,
     "save_model": false,
-    "data_path": "/mnt/storage/datasets/4DCT/041516 New Cases/training_data",
-    "valid_path": "/mnt/storage/datasets/4DCT/041516 New Cases/validation_data",
+    "data_path": "./data/raw",
+    "valid_path": "./data/raw",
+    "valid_type": "variance-valid",
     "checkpoint_path": "/mnt/storage/datasets/4DCT/checkpoints",
-    "n_gpu": 8,
+    "pretrained_model": "./models/dir",
+    "n_gpu": 1,
     "alpha": 10,
     "w_ternary": 1,
     "w_l1": 1,
@@ -21,6 +23,7 @@
     "warp_pad": "border",
     "w_scales": [1.0, 1.0, 1.0, 1.0, 0.0],
     "w_sm_scales": [1.0, 0.0, 0.0, 0.0, 0.0],
-    "w_ncc_scales": [1.0, 1.0, 1.0, 1.0, 1.0]
+    "w_ncc_scales": [1.0, 1.0, 1.0, 1.0, 1.0],
+    "loss": "ncc"
 }
 

@@ -18,7 +18,7 @@ class Validator(object):
 
     def __init__(self):
         self.dataset = get_dataset(
-            root="/mnt/storage/datasets/4DCT/041516 New Cases/training_data", w_aug=False)
+            root="./data/raw", w_aug=False)
         self.validation_batch_size = 4
 
     @staticmethod
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     validator = Validator()
-    num_of_valid_samples_to_create = 0
+    num_of_valid_samples_to_create = 1
     target_dir = '/mnt/storage/datasets/4DCT/041516 New Cases/validation_data'
     for idx in range(num_of_valid_samples_to_create):
         print(f'creating sample no\'{idx+1}')

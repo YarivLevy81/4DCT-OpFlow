@@ -12,6 +12,7 @@
     "save_model": false,
     "data_path": "./data/raw",
     "valid_path": "./data/raw",
+    "valid_type": "variance-valid",
     "checkpoint_path": "/mnt/storage/datasets/4DCT/checkpoints",
     "pretrained_model": "./models/dir",
     "n_gpu": 1,

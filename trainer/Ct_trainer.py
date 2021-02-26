@@ -25,7 +25,7 @@ class TrainFramework(BaseTrainer):
         self.model.train()
 
         for i_step, data in enumerate(self.train_loader):
-            
+
             # Prepare data
             img1, img2, _ = data
             vox_dim = img1[1].to(self.device)
@@ -47,37 +47,41 @@ class TrainFramework(BaseTrainer):
             self.optimizer.zero_grad()
 
             if self.i_iter % 50 == 0:
-                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res[0][0].detach().cpu(), show=False)
+                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res[0][0].detach().cpu(),
+                                            show=False)
                 self.writer.add_figure('Training_Samples', p_valid, self.i_iter)
-
 
             print(f'Iteration {self.i_iter}, epoch {self.i_epoch}')
             print(f'Info = {key_meters}')
-            #loss = 1024. * loss  # That's what they do in ARFlow
+            # loss = 1024. * loss  # That's what they do in ARFlow
             self.writer.add_scalar('Training Loss',
-                                    loss.mean().item(),
-                                    self.i_iter)
+                                   loss.mean().item(),
+                                   self.i_iter)
             loss.backward()
 
             required_grad_params = [p for p in self.model.parameters() if p.requires_grad]
             mean_grad_norm = 0
             for param in [p for p in self.model.parameters() if p.requires_grad]:
                 mean_grad_norm += param.grad.data.mean()
-                #param.grad.data.mul_(1. / 1024)
+                # param.grad.data.mul_(1. / 1024)
             log(f'Gradient data: len(requires_grad_params): {len(required_grad_params)}, '
-                  f'mean_gard_norm={mean_grad_norm/len(required_grad_params)}, '
-                  f'model_params={self.model.module.parameters(True)}'
-                  f'num_params={sum(p.numel() for p in self.model.module.parameters() if p.requires_grad)}')
+                f'mean_gard_norm={mean_grad_norm / len(required_grad_params)}, '
+                f'model_params={self.model.module.parameters(True)}'
+                f'num_params={sum(p.numel() for p in self.model.module.parameters() if p.requires_grad)}')
 
             self.optimizer.step()
             self.i_iter += 1
 
     def _validate(self):
         print(f'\n\nRunning validation..')
+        if self.args.valid_type == 'synthetic':
+            return self.synt_validate()
+        elif self.args.valid_type == 'variance_valid':
+            return self.variance_validate(), 0
+
+    def synt_validate(self):
         error = 0
         loss = 0
-
-
 
         for i_step, data in enumerate(self.valid_loader):
             # torch.cuda.empty_cache()
@@ -97,15 +101,13 @@ class TrainFramework(BaseTrainer):
             flow12_net = output[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
             # epe_map = torch.sqrt(
             #     torch.sum(torch.square(flow12 - flow12_net))).to(self.device).mean()
-            epe_map = torch.abs(flow12-flow12_net).to(self.device).mean()
+            epe_map = torch.abs(flow12 - flow12_net).to(self.device).mean()
             error += float(epe_map.mean().item())
             log(error)
-            
 
             _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
             loss += float(_loss.mean().item())
             # break
-             
 
         error /= len(self.valid_loader)
         loss /= len(self.valid_loader)
@@ -120,7 +122,6 @@ class TrainFramework(BaseTrainer):
                                loss,
                                self.i_epoch)
 
-        
         # p_imgs = [plot_image(im.detach().cpu(), show=False) for im in [img1, img2]]
         # p_conc_imgs= np.concatenate((np.concatenate(p_imgs[0][:1]+p_imgs[1][:1]),p_imgs[0][2]+p_imgs[1][2]))[np.newaxis][np.newaxis]
         # p_flows = [plot_flow(fl.detach().cpu(), show=False) for fl in [flow12,flow12_net]]
@@ -135,8 +136,63 @@ class TrainFramework(BaseTrainer):
         # self.writer.add_figure('Valid_Flows_gt_{}'.format(self.i_epoch), p_flo_gt, self.i_epoch)
         # self.writer.add_figure('Valid_Flows_{}'.format(self.i_epoch), p_flo, self.i_epoch)
 
-        p_valid=plot_validation_fig(img1.detach().cpu(), img2.detach().cpu(),flow12.detach().cpu(),flow12_net.detach().cpu(),show=False)
+        p_valid = plot_validation_fig(img1.detach().cpu(), img2.detach().cpu(), flow12.detach().cpu(),
+                                      flow12_net.detach().cpu(), show=False)
         self.writer.add_figure('Valid_Images', p_valid, self.i_epoch)
 
-
         return error, loss
+
+    def variance_validate(self):
+        error = 0
+        loss = 0
+
+        for i_step, img_tuples in enumerate(self.valid_loader):
+            # torch.cuda.empty_cache()
+            flows = torch.zeros([len(img_tuples) - 1, 3, 256, 256, 128]).to(self.device)
+            for i in range(len(img_tuples)):
+                # Prepare data
+                vox_dim = img_tuples[i][1].to(self.device)
+                img1, img2 = img_tuples[i][0].to(self.device), img_tuples[i + 1][0].to(self.device)
+                img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
+                img2 = img2.unsqueeze(1).float().to(self.device)  # Add channel dimension
+
+                output = self.model(img1, img2, vox_dim=vox_dim)
+                flows[i] = (output[0].float().to(self.device))  # Remove batch dimension, net prediction
+                log(f'flow_size = {output[0].size()}')
+                log(f'flow_size = {output[0].shape}')
+
+            img1, imgx = img_tuples[0][0].to(self.device), img_tuples[len(img_tuples)][0].to(self.device)
+            img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
+            imgx = imgx.unsqueeze(1).float().to(self.device)  # Add channel dimension
+
+            output = self.model(img1, imgx, vox_dim=vox_dim)
+            flow1x = output[0].squeeze(0).float().to(self.device)
+            flows = torch.sum(flows, dim=0)
+
+            epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flow12_net), dim=0)).mean()
+
+            error += float(epe_map.mean().item())
+            log(error)
+
+            # _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
+            # loss += float(_loss.mean().item())
+            # break
+
+        error /= len(self.valid_loader)
+        # loss /= len(self.valid_loader)
+        print(f'Validation error -> {error}')
+        # print(f'Validation loss -> {loss}')
+
+        self.writer.add_scalar('Validation Error',
+                               error,
+                               self.i_epoch)
+
+        # self.writer.add_scalar('Validation Loss',
+        #                        loss,
+        #                        self.i_epoch)
+
+        # p_valid = plot_validation_fig(img1.detach().cpu(), img2.detach().cpu(), flow12.detach().cpu(),
+        #                               flow12_net.detach().cpu(), show=False)
+        # self.writer.add_figure('Valid_Images', p_valid, self.i_epoch)
+
+        return error  # , loss

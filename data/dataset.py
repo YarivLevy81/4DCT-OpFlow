@@ -206,7 +206,7 @@ def get_dataset(root="./raw", w_aug=False, data_type='train'):
     if data_type == 'valid':
         return CT_4DDataset(root=root, w_aug=w_aug)
         # return CT_4DValidationset(root)
-    if data_type == 'variance_vaild':
+    if data_type == 'variance_valid':
         return CT_4D_Variance_Valid_set(root=root, w_aug=w_aug)
 
 
