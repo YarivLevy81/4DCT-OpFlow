@@ -1,5 +1,5 @@
 {
-    "batch_size": 64,
+    "batch_size": 1,
     "num_workers": 4,
     "test_batch_size": 1000,
     "epochs": 20,
@@ -21,5 +21,6 @@
     "w_ssim": 1,
     "warp_pad": "border",
     "w_scales": [1.0, 1.0, 1.0, 1.0, 0.0],
-    "w_sm_scales": [1.0, 0.0, 0.0, 0.0, 0.0]
+    "w_sm_scales": [1.0, 0.0, 0.0, 0.0, 0.0],
+    "w_ncc_scales": [1.0, 1.0, 1.0, 1.0, 1.0]
 }
