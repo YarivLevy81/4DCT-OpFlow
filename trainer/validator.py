@@ -1,5 +1,6 @@
 import torchio as tio
 import numpy as np
+from trainer.deformations import RandomNormalElasticDeformation
 from data.dataset import get_dataset
 import torch
 import SimpleITK as sitk
@@ -18,7 +19,9 @@ class Validator(object):
     def make_validation_sample(subject):
         rescale = tio.RescaleIntensity((0, 1))
         crop_or_pad = tio.CropOrPad(target_shape=(256, 256, 128), )
-        transformer = tio.RandomElasticDeformation()
+        #transformer = tio.RandomElasticDeformation()
+        #transformer = tio.RandomElasticDeformation(num_control_points=4, max_displacement=1.5, locked_borders=1)
+        transformer = RandomNormalElasticDeformation(num_control_points=4, max_displacement=3, locked_borders=1)
         pipe = tio.Compose([rescale, transformer])
 
         _transformed = pipe(subject)
@@ -163,6 +166,8 @@ if __name__ == '__main__':
     # transformed_recons = flow_warp(aug_im1.unsqueeze(0).float(), v_as_torch)
     plot_image(transformed_recons)
     plot_flow(v_as_torch)
+    import matplotlib.pyplot as plt
+    plt.show()
     # find_zer_coors(data.unsqueeze(0).float())
     # print('looking in transformed')
     # find_zer_coors(transformed_recons)
