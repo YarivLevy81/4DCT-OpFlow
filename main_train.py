@@ -29,7 +29,7 @@ if __name__ == '__main__':
     print(f'args={args}')
 
     train_set = get_dataset(root=args.data_path, w_aug=True)
-    valid_set = get_dataset(root=args.valid_path, w_aug=False, data_type='valid')
+    valid_set = get_dataset(root=args.valid_path, w_aug=False, data_type=args.valid_type)
 
     print('{} training samples found'.format(len(train_set)))
     print('{} validation samples found'.format(len(valid_set)))

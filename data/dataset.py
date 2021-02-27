@@ -153,6 +153,8 @@ class CT_4D_Variance_Valid_set(Dataset):
         self.patient_directories = sorted(self.patient_directories)
 
         for directory in self.patient_directories:
+            if len(self.patient_sets)>=self.num_of_sets:
+                break
             dir_files = []
             for file in directory.iterdir():
                 if file.is_file() and file.suffix == '.npz':
