@@ -149,15 +149,15 @@ class NCCLoss(nn.modules.Module):
         loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
         return sum([l.mean() for l in loss])
 
-    def loss_ncc(self, img, img_warped):
-        return NCC(img, img_warped)
+    #def loss_ncc(self, img, img_warped):
+    #   return NCC(img, img_warped)
 
     def forward(self, output, img1, img2, vox_dim):
         log("Computing loss")
         vox_dim = vox_dim.squeeze(0)
 
         pyramid_flows = output
-
+        loss_ncc_func=NCC()
         pyramid_smooth_losses = []
         pyramid_ncc_losses = []
 
@@ -181,7 +181,7 @@ class NCCLoss(nn.modules.Module):
 
             loss_smooth = self.loss_smooth(
                     flow=flow21 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
-            loss_ncc = self.loss_ncc(img1_scaled, img1_recons)
+            loss_ncc = loss_ncc_func(img1_scaled, img1_recons)
 
             log(f'Computed losses for level {i + 1}: loss_smoth={loss_smooth}'
                 f'loss_ncc={loss_ncc}')
@@ -200,7 +200,7 @@ class NCCLoss(nn.modules.Module):
         loss_ncc = sum(pyramid_ncc_losses)
         loss_total = loss_smooth + loss_ncc
 
-        return loss_total, loss_smooth, loss_ncc
+        return loss_total, loss_ncc, loss_smooth
 
 
 # Crecit: https://github.com/simonmeister/UnFlow/blob/master/src/e2eflow/core/losses.py

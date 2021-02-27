@@ -36,11 +36,11 @@ class TrainFramework(BaseTrainer):
             res = self.model(img1, img2, vox_dim=vox_dim)
 
             torch.cuda.empty_cache()
-            loss, l_ph, l_sm, l_ncc = self.loss_func(res, img1, img2, vox_dim)
+            loss, l_ph, l_sm = self.loss_func(res, img1, img2, vox_dim)
             # print(f'{loss} {l_ph} {l_sm}')
             # update meters
             key_meters.update(
-                [loss.mean().item(), l_ph.mean().item(), l_sm.mean().item(), l_ncc.mean().item()],
+                [loss.mean().item(), l_ph.mean().item(), l_sm.mean().item()],
                 img1.size(0))
             loss = loss.mean()
 
