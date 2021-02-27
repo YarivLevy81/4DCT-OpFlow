@@ -20,7 +20,7 @@ class TrainFramework(BaseTrainer):
         key_meter_names = ['Loss', 'l_ph', 'l_sm']
         key_meters = AverageMeter(i=len(key_meter_names), precision=4)
 
-        # self._validate()
+        #self._validate()
         # puts the model in train mode
         self.model.train()
 
@@ -149,7 +149,7 @@ class TrainFramework(BaseTrainer):
         for i_step, img_tuples in enumerate(self.valid_loader):
             # torch.cuda.empty_cache()
             flows = torch.zeros([len(img_tuples) - 1, 3, 256, 256, 128]).to(self.device)
-            for i in range(len(img_tuples)):
+            for i in range(len(img_tuples)-1):
                 # Prepare data
                 vox_dim = img_tuples[i][1].to(self.device)
                 img1, img2 = img_tuples[i][0].to(self.device), img_tuples[i + 1][0].to(self.device)
@@ -161,7 +161,7 @@ class TrainFramework(BaseTrainer):
                 log(f'flow_size = {output[0].size()}')
                 log(f'flow_size = {output[0].shape}')
 
-            img1, imgx = img_tuples[0][0].to(self.device), img_tuples[len(img_tuples)][0].to(self.device)
+            img1, imgx = img_tuples[0][0].to(self.device), img_tuples[-1][0].to(self.device)
             img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
             imgx = imgx.unsqueeze(1).float().to(self.device)  # Add channel dimension
 
@@ -169,14 +169,14 @@ class TrainFramework(BaseTrainer):
             flow1x = output[0].squeeze(0).float().to(self.device)
             flows = torch.sum(flows, dim=0)
 
-            epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flow12_net), dim=0)).mean()
-
+            epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flows), dim=0)).mean()
+            torch.cuda.empty_cache()
             error += float(epe_map.mean().item())
             log(error)
 
             # _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
             # loss += float(_loss.mean().item())
-            # break
+            #break
 
         error /= len(self.valid_loader)
         # loss /= len(self.valid_loader)

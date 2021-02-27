@@ -108,7 +108,7 @@ class CT_4DValidationset(Dataset):
 
 
 class CT_4D_Variance_Valid_set(Dataset):
-    def __init__(self, root: str, w_aug=False, set_length=5, num_of_sets=15):
+    def __init__(self, root: str, w_aug=False, set_length=4, num_of_sets=25):
         print(pathlib.Path.cwd())
         root_dir = pathlib.Path(root)
         if not root_dir.exists() or not root_dir.is_dir:
@@ -142,8 +142,8 @@ class CT_4D_Variance_Valid_set(Dataset):
         if self.patient_sets[index]['dim'] == 512:
             for idx in range(len(image_tuples)):
                 image_tuples[idx] = resize_512_to_256(image_tuples[idx])
-        image_tuples = pre_validation_set(image_tuples, self.w_augmentations)
-        return image_tuples, sample_name
+        image_tuples = pre_validation_set(image_tuples,vox=image_tuples[0][1], w_aug=self.w_augmentations)
+        return image_tuples
 
     def collect_samples(self):
         for entry in self.root.iterdir():
