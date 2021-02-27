@@ -108,7 +108,7 @@ class CT_4DValidationset(Dataset):
 
 
 class CT_4D_Variance_Valid_set(Dataset):
-    def __init__(self, root: str, w_aug=False, set_length=4, num_of_sets=25):
+    def __init__(self, root: str, w_aug=False, set_length=3, num_of_sets=25):
         print(pathlib.Path.cwd())
         root_dir = pathlib.Path(root)
         if not root_dir.exists() or not root_dir.is_dir:
@@ -195,7 +195,7 @@ def resize_512_to_256(img_tup):
     img = img_tup[0]
     z = img.shape[2]
     vox_dim = img_tup[1]
-    img = F.interpolate(img, size=[256, 256, z])
+    img =zoom(img, zoom=[0.5, 0.5, 1])
     vox_dim[0] = vox_dim[0] / 2
     vox_dim[1] = vox_dim[1] / 2
 
@@ -205,9 +205,9 @@ def resize_512_to_256(img_tup):
 def get_dataset(root="./raw", w_aug=False, data_type='train'):
     if data_type == 'train':
         return CT_4DDataset(root=root, w_aug=w_aug)
-    if data_type == 'valid':
-        return CT_4DDataset(root=root, w_aug=w_aug)
-        # return CT_4DValidationset(root)
+    if data_type == 'synthetic':
+        #return CT_4DDataset(root=root, w_aug=w_aug)
+        return CT_4DValidationset(root)
     if data_type == 'variance_valid':
         return CT_4D_Variance_Valid_set(root=root, w_aug=w_aug)
 

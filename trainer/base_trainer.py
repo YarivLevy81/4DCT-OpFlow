@@ -43,7 +43,7 @@ class BaseTrainer:
                 self.save_model(error, f'4DCT_{self.model_suffix}_{self.i_epoch}')
 
             self.i_epoch += 1
-
+        
         e = '%.3f' % error
         l = '%.3f' % loss
         # TODO: save with error

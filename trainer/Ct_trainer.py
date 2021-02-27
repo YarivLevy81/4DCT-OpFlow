@@ -71,6 +71,7 @@ class TrainFramework(BaseTrainer):
 
             self.optimizer.step()
             self.i_iter += 1
+            #break
 
     def _validate(self):
         print(f'\n\nRunning validation..')
@@ -99,9 +100,9 @@ class TrainFramework(BaseTrainer):
             log(f'flow_size = {output[0].shape}')
 
             flow12_net = output[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
-            # epe_map = torch.sqrt(
-            #     torch.sum(torch.square(flow12 - flow12_net))).to(self.device).mean()
-            epe_map = torch.abs(flow12 - flow12_net).to(self.device).mean()
+            epe_map = torch.sqrt(
+                 torch.sum(torch.square(flow12 - flow12_net),dim=0)).to(self.device).mean()
+            #epe_map = torch.abs(flow12 - flow12_net).to(self.device).mean()
             error += float(epe_map.mean().item())
             log(error)
 
@@ -148,16 +149,18 @@ class TrainFramework(BaseTrainer):
 
         for i_step, img_tuples in enumerate(self.valid_loader):
             # torch.cuda.empty_cache()
-            flows = torch.zeros([len(img_tuples) - 1, 3, 256, 256, 128]).to(self.device)
+            flows = torch.zeros([3, 256, 256, 128]).to(self.device)
             for i in range(len(img_tuples)-1):
                 # Prepare data
+                torch.cuda.empty_cache()
+
                 vox_dim = img_tuples[i][1].to(self.device)
                 img1, img2 = img_tuples[i][0].to(self.device), img_tuples[i + 1][0].to(self.device)
                 img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
                 img2 = img2.unsqueeze(1).float().to(self.device)  # Add channel dimension
 
                 output = self.model(img1, img2, vox_dim=vox_dim)
-                flows[i] = (output[0].float().to(self.device))  # Remove batch dimension, net prediction
+                flows += (output[0].squeeze(0).float().to(self.device))  # Remove batch dimension, net prediction
                 log(f'flow_size = {output[0].size()}')
                 log(f'flow_size = {output[0].shape}')
 
