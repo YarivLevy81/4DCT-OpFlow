@@ -107,43 +107,49 @@ class CT_4DValidationset(Dataset):
                 self.validation_tuples.append(dir_files[idx])
 
 
-class CT_4D_Variance_Valid_set(Dataset):
-    def __init__(self, root: str, w_aug=False, set_length=3, num_of_sets=25):
-        print(pathlib.Path.cwd())
-        root_dir = pathlib.Path(root)
-        if not root_dir.exists() or not root_dir.is_dir:
-            raise FileExistsError(
-                f"{str(root_dir)} doesn't exist or isn't a directory")
-
-        self.root = root_dir
-        self.w_augmentations = w_aug
+class CT_4D_Variance_Valid_set(CT_4DDataset):
+    def __init__(self, root: str, w_aug=False, set_length=5, num_of_sets=15):
         self.set_length = set_length
         self.num_of_sets = num_of_sets
+        super().__init__(root,w_aug=w_aug)
+        
 
         # Traverse the root directory and count it's size
         self.patient_directories = []
-        self.patient_sets = []
+        self.patient_samples = []
         self.collect_samples()
 
-    def __len__(self):
-        return len(self.patient_sets)
+    
 
     def __getitem__(self, index):
-        idx = [i + 1 for i in range(self.set_length)]
-        image_tuples = []
-        for i in idx:
-            image_tuples.append(file_processor(self.patient_sets[index][f'img{i}']))
-
-        sample_name = self.patient_sets[index]['name']
-        if image_tuples[0][0].shape[2] > 128:
+        img1, vox_dim1 = file_processor(self.patient_samples[index]['img1'])
+        img2, vox_dim2 = file_processor(self.patient_samples[index]['img2'])
+        sample_name = self.patient_samples[index]['name']
+        if img1.shape[2] > 128:
             print('non_mat')
             # todo implement solution
 
-        if self.patient_sets[index]['dim'] == 512:
-            for idx in range(len(image_tuples)):
-                image_tuples[idx] = resize_512_to_256(image_tuples[idx])
-        image_tuples = pre_validation_set(image_tuples,vox=image_tuples[0][1], w_aug=self.w_augmentations)
-        return image_tuples
+        if self.patient_samples[index]['dim'] == 512:
+            img1,vox_dim1 = resize_512_to_256((img1,vox_dim1))
+            img2,vox_dim2 = resize_512_to_256((img2,vox_dim2))
+
+        p1, p2 = pre_augmentor(img1, img2, vox_dim1, self.w_augmentations)
+        return p1, p2, sample_name
+        # idx = [i + 1 for i in range(self.set_length)]
+        # image_tuples = []
+        # for i in idx:
+        #     image_tuples.append(file_processor(self.patient_sets[index][f'img{i}']))
+
+        # sample_name = self.patient_sets[index]['name']
+        # if image_tuples[0][0].shape[2] > 128:
+        #     print('non_mat')
+        #     # todo implement solution
+
+        # if self.patient_sets[index]['dim'] == 512:
+        #     for idx in range(len(image_tuples)):
+        #         image_tuples[idx] = resize_512_to_256(image_tuples[idx])
+        # image_tuples = pre_validation_set(image_tuples,vox=image_tuples[0][1], w_aug=self.w_augmentations)
+        # return image_tuples
 
     def collect_samples(self):
         for entry in self.root.iterdir():
@@ -153,7 +159,7 @@ class CT_4D_Variance_Valid_set(Dataset):
         self.patient_directories = sorted(self.patient_directories)
 
         for directory in self.patient_directories:
-            if len(self.patient_sets)>=self.num_of_sets:
+            if len(self.patient_samples)>=self.num_of_sets*self.set_length:
                 break
             dir_files = []
             for file in directory.iterdir():
@@ -165,15 +171,28 @@ class CT_4D_Variance_Valid_set(Dataset):
                 dim = 256
             else:
                 dim = 512
-            if len(dir_files) < self.set_length:
+            if len(dir_files)<self.set_length:
                 continue
-            idx = [i for i in range(self.set_length)]
-            name = dir_files[idx[0]].parent.name
-            set_dict = {f'img{i + 1}': dir_files[i] for i in idx}
-            set_dict['name'] = name
-            set_dict['dim'] = dim
+            for idx in range(self.set_length-1):
+                sample_name = dir_files[idx].name
+                sample_name = sample_name[sample_name.index(
+                    '_'):sample_name.index('(')]
+                name = dir_files[idx].parent.name + sample_name
+                self.patient_samples.append(
+                    {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
+            # adding last sample as apair of first image and last image of set
+            self.patient_samples.append(
+                {'name':dir_files[idx].parent.name, 'img1':dir_files[0], 'img2':dir_files[self.set_length-1], 'dim':dim})
+            
+            # if len(dir_files) < self.set_length:
+            #     continue
+            # idx = [i for i in range(self.set_length)]
+            # name = dir_files[idx[0]].parent.name
+            # set_dict = {f'img{i + 1}': dir_files[i] for i in idx}
+            # set_dict['name'] = name
+            # set_dict['dim'] = dim
 
-            self.patient_sets.append(set_dict)
+            # self.patient_sets.append(set_dict)
 
 
 def pad_img_to_128(img):

@@ -39,10 +39,10 @@ if __name__ == '__main__':
         train_set, batch_size=args.batch_size,
         num_workers=args.num_workers, pin_memory=True, shuffle=True
     )
-
+    
     valid_loader = torch.utils.data.DataLoader(
         valid_set, batch_size=1,
-        num_workers=args.num_workers, pin_memory=True, shuffle=True
+        num_workers=8, pin_memory=True, shuffle=True
     )
 
     model = get_model(args)

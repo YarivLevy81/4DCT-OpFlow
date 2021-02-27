@@ -144,6 +144,60 @@ class TrainFramework(BaseTrainer):
         return error, loss
 
     def variance_validate(self):
+        error=0
+        loss=0
+
+        flows = torch.zeros([3, 256, 256, 128]).to(self.device)
+        for i_step, data in enumerate(self.valid_loader):
+            print(i_step)
+            # Prepare data
+            img1, img2, name = data
+            vox_dim = img1[1].to(self.device)
+            img1, img2 = img1[0].to(self.device), img2[0].to(self.device)
+            img1 = img1.unsqueeze(1).float()  # Add channel dimension
+            img2 = img2.unsqueeze(1).float()  # Add channel dimension
+
+            #res = self.model(img1, img2, vox_dim=vox_dim)
+            res = self.model(img1, img2, vox_dim=vox_dim)[0].squeeze(0).float()
+            if (i_step+1)%self.args.variance_valid_len==0:
+                #flow1x = res[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
+                flow1x = res
+                epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flows), dim=0)).mean()
+                torch.cuda.empty_cache()
+                error += float(epe_map.mean().item())
+                log(error)
+                print(f'{name} 1x')
+
+                flows = torch.zeros([3, 256, 256, 128]).to(self.device)
+            else:
+                flows += res
+                #flows += res[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
+                print(name)
+            torch.cuda.empty_cache()
+
+        error /= len(self.args.variance_valid_sets)
+        # loss /= len(self.valid_loader)
+        print(f'Validation error -> {error}')
+        # print(f'Validation loss -> {loss}')
+
+        self.writer.add_scalar('Validation Error',
+                               error,
+                               self.i_epoch)
+
+        # self.writer.add_scalar('Validation Loss',
+        #                        loss,
+        #                        self.i_epoch)
+
+        # p_valid = plot_validation_fig(img1.detach().cpu(), img2.detach().cpu(), flow12.detach().cpu(),
+        #                               flow12_net.detach().cpu(), show=False)
+        # self.writer.add_figure('Valid_Images', p_valid, self.i_epoch)
+
+        return error  # , loss
+
+
+
+    
+    def variance_validate2(self):
         error = 0
         loss = 0
 

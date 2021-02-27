@@ -1,7 +1,7 @@
 import sys
 import os
-# BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# sys.path.append(BASE_PATH)
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_PATH)
 import torchio as tio
 import numpy as np
 
@@ -11,21 +11,26 @@ from data.dataset import get_dataset
 from data.dicom_utils import validation_to_npz
 from utils.warp_utils import flow_warp
 from utils.visualization_utils import plot_image, plot_flow
+from trainer.deformations import RandomNormalElasticDeformation
+
 import random
 
 
 class Validator(object):
 
     def __init__(self):
+        # self.dataset = get_dataset(
+        #     root="./data/raw", w_aug=False)
         self.dataset = get_dataset(
-            root="./data/raw", w_aug=False)
+            root="/mnt/storage/datasets/4DCT/041516 New Cases/training_data", w_aug=False)
         self.validation_batch_size = 4
 
     @staticmethod
     def make_validation_sample(subject):
         rescale = tio.RescaleIntensity((0, 1))
         crop_or_pad = tio.CropOrPad(target_shape=(256, 256, 128), )
-        transformer = tio.RandomElasticDeformation()
+        #transformer = tio.RandomElasticDeformation()
+        transformer = RandomNormalElasticDeformation(num_control_points=4, max_displacement=1, locked_borders=1)
         pipe = tio.Compose([rescale, crop_or_pad, transformer])
 
         _transformed = pipe(subject)
@@ -159,8 +164,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     validator = Validator()
-    num_of_valid_samples_to_create = 1
-    target_dir = '/mnt/storage/datasets/4DCT/041516 New Cases/validation_data'
+    num_of_valid_samples_to_create = 50
+    target_dir = '/mnt/storage/datasets/4DCT/041516 New Cases/validation_normal_data'
     for idx in range(num_of_valid_samples_to_create):
         print(f'creating sample no\'{idx+1}')
         if args.synthetic:
@@ -168,7 +173,8 @@ if __name__ == '__main__':
             data = torch.from_numpy(img[np.newaxis])
             vox = (1, 1, 1)
         else:
-            img = validator.dataset[idx]
+            i=idx*int(len(validator.dataset)/num_of_valid_samples_to_create)
+            img = validator.dataset[i]
             data = img[1][0][np.newaxis]
             vox = img[0][1]
         create_and_save_validation_triplet(data, vox, img[2], target_dir)
