@@ -42,7 +42,7 @@ if __name__ == '__main__':
     
     valid_loader = torch.utils.data.DataLoader(
         valid_set, batch_size=1,
-        num_workers=8, pin_memory=True, shuffle=True
+        num_workers=8, pin_memory=True, shuffle=False
     )
 
     model = get_model(args)

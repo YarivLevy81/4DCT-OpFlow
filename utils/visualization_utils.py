@@ -32,7 +32,7 @@ def plot_image(
         fig.savefig(output_path)
     if show:
         plt.show()
-    return slice_x, slice_y, slice_z
+    return fig
 
 
 def plot_images(

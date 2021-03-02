@@ -20,7 +20,7 @@ class BaseTrainer:
         self.args = args
 
         self.model = self._init_model(model)
-        self.model.apply(self.model.module.init_weights)
+        #self.model.apply(self.model.module.init_weights)
         self.optimizer = self._get_optimizer()
         self.loss_func = loss_func
         self.loss_func = torch.nn.DataParallel(self.loss_func, device_ids=self.device_ids)
@@ -84,6 +84,7 @@ class BaseTrainer:
 
         else:
             print("=> Train from scratch")
+            model.apply(model.init_weights)
 
         if torch.cuda.device_count() > 1 and self.device != torch.device('cpu'):
             #from torch.nn.parallel import DistributedDataParallel as DDP

@@ -1,8 +1,10 @@
+from matplotlib.pyplot import show
 from .base_trainer import BaseTrainer
 from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
-from utils.visualization_utils import plot_validation_fig, plot_training_fig
+from utils.visualization_utils import plot_validation_fig, plot_training_fig, plot_image
+from utils.warp_utils import flow_warp
 import numpy as np
 from losses.flow_loss import get_loss
 import torch
@@ -14,7 +16,7 @@ class TrainFramework(BaseTrainer):
             train_loader, valid_loader, model, loss_func, args)
 
         # default `log_dir` is "runs" - we'll be more specific here
-        self.writer = SummaryWriter('runs/research')
+        self.writer = SummaryWriter(f'runs/research_{self.model_suffix}')
 
     def _run_one_epoch(self):
         key_meter_names = ['Loss', 'l_ph', 'l_sm']
@@ -143,13 +145,15 @@ class TrainFramework(BaseTrainer):
 
         return error, loss
 
+    @torch.no_grad()
     def variance_validate(self):
         error=0
         loss=0
 
         flows = torch.zeros([3, 256, 256, 128]).to(self.device)
+        images_warped = torch.zeros([self.args.variance_valid_len,256,256,128]).to(self.device)
         for i_step, data in enumerate(self.valid_loader):
-            print(i_step)
+            
             # Prepare data
             img1, img2, name = data
             vox_dim = img1[1].to(self.device)
@@ -157,25 +161,26 @@ class TrainFramework(BaseTrainer):
             img1 = img1.unsqueeze(1).float()  # Add channel dimension
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
+            if (i_step)%(self.args.variance_valid_len-1)==0 :
+                images_warped[i_step%(self.args.variance_valid_len-1)] = img1.squeeze(0)
+
             #res = self.model(img1, img2, vox_dim=vox_dim)
             res = self.model(img1, img2, vox_dim=vox_dim)[0].squeeze(0).float()
-            if (i_step+1)%self.args.variance_valid_len==0:
-                #flow1x = res[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
-                flow1x = res
-                epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flows), dim=0)).mean()
-                torch.cuda.empty_cache()
-                error += float(epe_map.mean().item())
+            flows += res
+            #flows += res[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
+            print(name)
+            images_warped[i_step%(self.args.variance_valid_len-1)] = flow_warp(img2,flows.unsqueeze(0)) # im1 recons
+            if (i_step+1)%(self.args.variance_valid_len-1)==0:
+                variance = torch.std(images_warped,dim=0)
+                #epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flows), dim=0)).mean()
+                #torch.cuda.empty_cache()
+                error += float(variance.mean().item())
                 log(error)
                 print(f'{name} 1x')
-
                 flows = torch.zeros([3, 256, 256, 128]).to(self.device)
-            else:
-                flows += res
-                #flows += res[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
-                print(name)
             torch.cuda.empty_cache()
 
-        error /= len(self.args.variance_valid_sets)
+        error /= self.args.variance_valid_sets
         # loss /= len(self.valid_loader)
         print(f'Validation error -> {error}')
         # print(f'Validation loss -> {loss}')
@@ -188,9 +193,10 @@ class TrainFramework(BaseTrainer):
         #                        loss,
         #                        self.i_epoch)
 
-        # p_valid = plot_validation_fig(img1.detach().cpu(), img2.detach().cpu(), flow12.detach().cpu(),
+        p_valid = plot_image(variance.detach().cpu(),show=False)
         #                               flow12_net.detach().cpu(), show=False)
-        # self.writer.add_figure('Valid_Images', p_valid, self.i_epoch)
+        self.writer.add_figure('Valid_Images', p_valid, self.i_epoch)
+
 
         return error  # , loss
 

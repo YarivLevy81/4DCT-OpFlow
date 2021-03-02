@@ -108,7 +108,7 @@ class CT_4DValidationset(Dataset):
 
 
 class CT_4D_Variance_Valid_set(CT_4DDataset):
-    def __init__(self, root: str, w_aug=False, set_length=5, num_of_sets=15):
+    def __init__(self, root: str, w_aug=False, set_length=8, num_of_sets=15):
         self.set_length = set_length
         self.num_of_sets = num_of_sets
         super().__init__(root,w_aug=w_aug)
@@ -181,8 +181,8 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
                 self.patient_samples.append(
                     {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
             # adding last sample as apair of first image and last image of set
-            self.patient_samples.append(
-                {'name':dir_files[idx].parent.name, 'img1':dir_files[0], 'img2':dir_files[self.set_length-1], 'dim':dim})
+            # self.patient_samples.append(
+            #    {'name':dir_files[idx].parent.name, 'img1':dir_files[0], 'img2':dir_files[self.set_length-1], 'dim':dim})
             
             # if len(dir_files) < self.set_length:
             #     continue
