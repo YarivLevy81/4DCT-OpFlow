@@ -22,11 +22,14 @@ def plot_image(
     slice_z = rotate(data[:, :, k])
 
     kwargs = {}
-    kwargs['cmap'] = 'gray'
+    kwargs['cmap'] = 'YlGnBu'
     x_extent, y_extent, z_extent = [(0, b - 1) for b in data.shape]
-    axes[0].imshow(slice_x, extent=y_extent + z_extent, **kwargs)
-    axes[1].imshow(slice_y, extent=x_extent + z_extent, **kwargs)
-    axes[2].imshow(slice_z, extent=x_extent + y_extent, **kwargs)
+    f0 = axes[0].imshow(slice_x, extent=y_extent + z_extent, **kwargs)
+    f1 = axes[1].imshow(slice_y, extent=x_extent + z_extent, **kwargs)
+    f2 = axes[2].imshow(slice_z, extent=x_extent + y_extent, **kwargs)
+    plt.colorbar(f0,ax=axes[0])
+    plt.colorbar(f1,ax=axes[1])
+    plt.colorbar(f2,ax=axes[2])
     plt.tight_layout()
     if output_path is not None and fig is not None:
         fig.savefig(output_path)

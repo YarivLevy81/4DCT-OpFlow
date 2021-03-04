@@ -25,7 +25,7 @@
     "w_sm_scales": [1.0, 0.0, 0.0, 0.0, 0.0],
     "w_ncc_scales": [1.0, 1.0, 1.0, 1.0, 1.0],
     "loss": "ncc",
-    "variance_valid_len": 8,
+    "variance_valid_len": 10,
     "variance_valid_sets": 15
 }
 

@@ -108,7 +108,7 @@ class CT_4DValidationset(Dataset):
 
 
 class CT_4D_Variance_Valid_set(CT_4DDataset):
-    def __init__(self, root: str, w_aug=False, set_length=8, num_of_sets=15):
+    def __init__(self, root: str, w_aug=False, set_length=10, num_of_sets=15):
         self.set_length = set_length
         self.num_of_sets = num_of_sets
         super().__init__(root,w_aug=w_aug)
@@ -133,7 +133,7 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
             img1,vox_dim1 = resize_512_to_256((img1,vox_dim1))
             img2,vox_dim2 = resize_512_to_256((img2,vox_dim2))
 
-        p1, p2 = pre_augmentor(img1, img2, vox_dim1, self.w_augmentations)
+        p1, p2 = pre_augmentor(img1, img2, vox_dim1, False)
         return p1, p2, sample_name
         # idx = [i + 1 for i in range(self.set_length)]
         # image_tuples = []

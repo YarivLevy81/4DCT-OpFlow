@@ -22,7 +22,7 @@ class TrainFramework(BaseTrainer):
         key_meter_names = ['Loss', 'l_ph', 'l_sm']
         key_meters = AverageMeter(i=len(key_meter_names), precision=4)
 
-        #self._validate()
+        # self._validate()
         # puts the model in train mode
         self.model.train()
 
@@ -51,7 +51,8 @@ class TrainFramework(BaseTrainer):
             if self.i_iter % 50 == 0:
                 p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res[0][0].detach().cpu(),
                                             show=False)
-                self.writer.add_figure('Training_Samples', p_valid, self.i_iter)
+                self.writer.add_figure(
+                    'Training_Samples', p_valid, self.i_iter)
 
             print(f'Iteration {self.i_iter}, epoch {self.i_epoch}')
             print(f'Info = {key_meters}')
@@ -61,7 +62,8 @@ class TrainFramework(BaseTrainer):
                                    self.i_iter)
             loss.backward()
 
-            required_grad_params = [p for p in self.model.parameters() if p.requires_grad]
+            required_grad_params = [
+                p for p in self.model.parameters() if p.requires_grad]
             mean_grad_norm = 0
             for param in [p for p in self.model.parameters() if p.requires_grad]:
                 mean_grad_norm += param.grad.data.mean()
@@ -73,7 +75,7 @@ class TrainFramework(BaseTrainer):
 
             self.optimizer.step()
             self.i_iter += 1
-            #break
+            # break
 
     def _validate(self):
         print(f'\n\nRunning validation..')
@@ -92,19 +94,23 @@ class TrainFramework(BaseTrainer):
             # Prepare data
             img1, img2, flow12 = data
             vox_dim = img1[1].to(self.device)
-            img1, img2, flow12 = img1[0].to(self.device), img2[0].to(self.device), flow12[0].to(self.device)
-            img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
-            img2 = img2.unsqueeze(1).float().to(self.device)  # Add channel dimension
+            img1, img2, flow12 = img1[0].to(self.device), img2[0].to(
+                self.device), flow12[0].to(self.device)
+            img1 = img1.unsqueeze(1).float().to(
+                self.device)  # Add channel dimension
+            img2 = img2.unsqueeze(1).float().to(
+                self.device)  # Add channel dimension
 
             output = self.model(img1, img2, vox_dim=vox_dim)
 
             log(f'flow_size = {output[0].size()}')
             log(f'flow_size = {output[0].shape}')
 
-            flow12_net = output[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
+            flow12_net = output[0].squeeze(0).float().to(
+                self.device)  # Remove batch dimension, net prediction
             epe_map = torch.sqrt(
-                 torch.sum(torch.square(flow12 - flow12_net),dim=0)).to(self.device).mean()
-            #epe_map = torch.abs(flow12 - flow12_net).to(self.device).mean()
+                torch.sum(torch.square(flow12 - flow12_net), dim=0)).to(self.device).mean()
+            # epe_map = torch.abs(flow12 - flow12_net).to(self.device).mean()
             error += float(epe_map.mean().item())
             log(error)
 
@@ -129,13 +135,13 @@ class TrainFramework(BaseTrainer):
         # p_conc_imgs= np.concatenate((np.concatenate(p_imgs[0][:1]+p_imgs[1][:1]),p_imgs[0][2]+p_imgs[1][2]))[np.newaxis][np.newaxis]
         # p_flows = [plot_flow(fl.detach().cpu(), show=False) for fl in [flow12,flow12_net]]
         # p_flows_conc = np.transpose(np.concatenate((np.concatenate(p_flows[0][:1]+p_flows[1][:1]),)),(2,0,1))[np.newaxis]
-        # self.writer.add_images('Valid_Images_{}'.format(self.i_epoch), p_conc_imgs, self.i_epoch)                       
+        # self.writer.add_images('Valid_Images_{}'.format(self.i_epoch), p_conc_imgs, self.i_epoch)
         # self.writer.add_images('Valid_Flows_{}'.format(self.i_epoch), p_flows_conc, self.i_epoch)
 
         # p_img_fig = plot_images(img1.detach().cpu(), img2.detach().cpu())
         # p_flo_gt = plot_flow(flow12.detach().cpu())
         # p_flo = plot_flow(flow12_net.detach().cpu())
-        # self.writer.add_figure('Valid_Images_{}'.format(self.i_epoch), p_img_fig, self.i_epoch)                       
+        # self.writer.add_figure('Valid_Images_{}'.format(self.i_epoch), p_img_fig, self.i_epoch)
         # self.writer.add_figure('Valid_Flows_gt_{}'.format(self.i_epoch), p_flo_gt, self.i_epoch)
         # self.writer.add_figure('Valid_Flows_{}'.format(self.i_epoch), p_flo, self.i_epoch)
 
@@ -147,13 +153,14 @@ class TrainFramework(BaseTrainer):
 
     @torch.no_grad()
     def variance_validate(self):
-        error=0
-        loss=0
+        error = 0
+        loss = 0
 
         flows = torch.zeros([3, 256, 256, 128]).to(self.device)
-        images_warped = torch.zeros([self.args.variance_valid_len,256,256,128]).to(self.device)
+        images_warped = torch.zeros(
+            [self.args.variance_valid_len, 256, 256, 128]).to(self.device)
         for i_step, data in enumerate(self.valid_loader):
-            
+
             # Prepare data
             img1, img2, name = data
             vox_dim = img1[1].to(self.device)
@@ -161,23 +168,29 @@ class TrainFramework(BaseTrainer):
             img1 = img1.unsqueeze(1).float()  # Add channel dimension
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
-            if (i_step)%(self.args.variance_valid_len-1)==0 :
-                images_warped[i_step%(self.args.variance_valid_len-1)] = img1.squeeze(0)
+            if (i_step) % (self.args.variance_valid_len-1) == 0:
+                images_warped[i_step %
+                              (self.args.variance_valid_len-1)] = img1.squeeze(0)
 
             #res = self.model(img1, img2, vox_dim=vox_dim)
+            # flows += res[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
             res = self.model(img1, img2, vox_dim=vox_dim)[0].squeeze(0).float()
             flows += res
-            #flows += res[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
-            print(name)
-            images_warped[i_step%(self.args.variance_valid_len-1)] = flow_warp(img2,flows.unsqueeze(0)) # im1 recons
-            if (i_step+1)%(self.args.variance_valid_len-1)==0:
-                variance = torch.std(images_warped,dim=0)
+
+            # print(name)
+            images_warped[i_step % (self.args.variance_valid_len-1)
+                          ] = flow_warp(img2, flows.unsqueeze(0))  # im1 recons
+            images_warped[i_step %
+                          (self.args.variance_valid_len-1)] = img2  # im1 recons
+            if (i_step+1) % (self.args.variance_valid_len-1) == 0:
+                variance = torch.std(images_warped, dim=0)
                 #epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flows), dim=0)).mean()
-                #torch.cuda.empty_cache()
+                # torch.cuda.empty_cache()
                 error += float(variance.mean().item())
                 log(error)
-                print(f'{name} 1x')
+                #print(f'{name} 1x')
                 flows = torch.zeros([3, 256, 256, 128]).to(self.device)
+                # break
             torch.cuda.empty_cache()
 
         error /= self.args.variance_valid_sets
@@ -193,16 +206,12 @@ class TrainFramework(BaseTrainer):
         #                        loss,
         #                        self.i_epoch)
 
-        p_valid = plot_image(variance.detach().cpu(),show=False)
+        p_valid = plot_image(variance.detach().cpu(), show=False)
         #                               flow12_net.detach().cpu(), show=False)
         self.writer.add_figure('Valid_Images', p_valid, self.i_epoch)
 
-
         return error  # , loss
 
-
-
-    
     def variance_validate2(self):
         error = 0
         loss = 0
@@ -215,31 +224,39 @@ class TrainFramework(BaseTrainer):
                 torch.cuda.empty_cache()
 
                 vox_dim = img_tuples[i][1].to(self.device)
-                img1, img2 = img_tuples[i][0].to(self.device), img_tuples[i + 1][0].to(self.device)
-                img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
-                img2 = img2.unsqueeze(1).float().to(self.device)  # Add channel dimension
+                img1, img2 = img_tuples[i][0].to(
+                    self.device), img_tuples[i + 1][0].to(self.device)
+                img1 = img1.unsqueeze(1).float().to(
+                    self.device)  # Add channel dimension
+                img2 = img2.unsqueeze(1).float().to(
+                    self.device)  # Add channel dimension
 
                 output = self.model(img1, img2, vox_dim=vox_dim)
-                flows += (output[0].squeeze(0).float().to(self.device))  # Remove batch dimension, net prediction
+                # Remove batch dimension, net prediction
+                flows += (output[0].squeeze(0).float().to(self.device))
                 log(f'flow_size = {output[0].size()}')
                 log(f'flow_size = {output[0].shape}')
 
-            img1, imgx = img_tuples[0][0].to(self.device), img_tuples[-1][0].to(self.device)
-            img1 = img1.unsqueeze(1).float().to(self.device)  # Add channel dimension
-            imgx = imgx.unsqueeze(1).float().to(self.device)  # Add channel dimension
+            img1, imgx = img_tuples[0][0].to(
+                self.device), img_tuples[-1][0].to(self.device)
+            img1 = img1.unsqueeze(1).float().to(
+                self.device)  # Add channel dimension
+            imgx = imgx.unsqueeze(1).float().to(
+                self.device)  # Add channel dimension
 
             output = self.model(img1, imgx, vox_dim=vox_dim)
             flow1x = output[0].squeeze(0).float().to(self.device)
             flows = torch.sum(flows, dim=0)
 
-            epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flows), dim=0)).mean()
+            epe_map = torch.sqrt(
+                torch.sum(torch.square(flow1x - flows), dim=0)).mean()
             torch.cuda.empty_cache()
             error += float(epe_map.mean().item())
             log(error)
 
             # _loss, l_ph, l_sm = self.loss_func(output, img1, img2, vox_dim)
             # loss += float(_loss.mean().item())
-            #break
+            # break
 
         error /= len(self.valid_loader)
         # loss /= len(self.valid_loader)
