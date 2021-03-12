@@ -37,7 +37,7 @@ class TrainFramework(BaseTrainer):
 
             res = self.model(img1, img2, vox_dim=vox_dim)
 
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
             loss, l_ph, l_sm = self.loss_func(res, img1, img2, vox_dim)
             # print(f'{loss} {l_ph} {l_sm}')
             # update meters
@@ -156,10 +156,10 @@ class TrainFramework(BaseTrainer):
         error = 0
         loss = 0
 
-        flows = torch.zeros([3, 256, 256, 128]).to(self.device)
+        flows = torch.zeros([3, 256, 256, 128], device=self.device)
         images_warped = torch.zeros(
-            [self.args.variance_valid_len, 256, 256, 128]).to(self.device)
-        for i_step, data in enumerate(self.valid_loader):
+            [self.args.variance_valid_len, 256, 256, 128], device=self.device)
+        for i_step, data in enumerate(self.valid_loader):                
 
             # Prepare data
             img1, img2, name = data
@@ -171,27 +171,20 @@ class TrainFramework(BaseTrainer):
             if (i_step) % (self.args.variance_valid_len-1) == 0:
                 images_warped[i_step %
                               (self.args.variance_valid_len-1)] = img1.squeeze(0)
-
-            #res = self.model(img1, img2, vox_dim=vox_dim)
-            # flows += res[0].squeeze(0).float().to(self.device)  # Remove batch dimension, net prediction
+            # Remove batch dimension, net prediction
             res = self.model(img1, img2, vox_dim=vox_dim)[0].squeeze(0).float()
             flows += res
-
             # print(name)
-            images_warped[i_step % (self.args.variance_valid_len-1)
-                          ] = flow_warp(img2, flows.unsqueeze(0))  # im1 recons
-            images_warped[i_step %
-                          (self.args.variance_valid_len-1)] = img2  # im1 recons
+            images_warped[i_step % (self.args.variance_valid_len-1)] = flow_warp(img2, flows.unsqueeze(0))  # im1 recons
+            
             if (i_step+1) % (self.args.variance_valid_len-1) == 0:
                 variance = torch.std(images_warped, dim=0)
-                #epe_map = torch.sqrt(torch.sum(torch.square(flow1x - flows), dim=0)).mean()
                 # torch.cuda.empty_cache()
                 error += float(variance.mean().item())
                 log(error)
                 #print(f'{name} 1x')
                 flows = torch.zeros([3, 256, 256, 128]).to(self.device)
-                # break
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
         error /= self.args.variance_valid_sets
         # loss /= len(self.valid_loader)
@@ -221,7 +214,7 @@ class TrainFramework(BaseTrainer):
             flows = torch.zeros([3, 256, 256, 128]).to(self.device)
             for i in range(len(img_tuples)-1):
                 # Prepare data
-                torch.cuda.empty_cache()
+                # torch.cuda.empty_cache()
 
                 vox_dim = img_tuples[i][1].to(self.device)
                 img1, img2 = img_tuples[i][0].to(
@@ -250,7 +243,7 @@ class TrainFramework(BaseTrainer):
 
             epe_map = torch.sqrt(
                 torch.sum(torch.square(flow1x - flows), dim=0)).mean()
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
             error += float(epe_map.mean().item())
             log(error)
 

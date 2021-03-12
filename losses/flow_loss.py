@@ -110,7 +110,7 @@ class UnFlowLoss(nn.modules.Module):
             pyramid_warp_losses.append(loss_warp)
             # pyramid_smooth_losses+=loss_smooth*self.args.w_sm_scales[i]
             # pyramid_warp_losses+=loss_smooth*self.args.w_scales[i]
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
         pyramid_warp_losses = [l * w for l, w in
                                zip(pyramid_warp_losses, self.args.w_scales)]
@@ -188,7 +188,7 @@ class NCCLoss(nn.modules.Module):
 
             pyramid_smooth_losses.append(loss_smooth)
             pyramid_ncc_losses.append(loss_ncc)
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
         pyramid_smooth_losses = [l * w for l, w in
                                  zip(pyramid_smooth_losses, self.args.w_sm_scales)]
