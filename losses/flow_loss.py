@@ -93,15 +93,15 @@ class UnFlowLoss(nn.modules.Module):
             # Only needed if we aggregate flow21 and dowing backward computation
             img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
 
-            flow21 = flow[:, :3]
+            flow12 = flow[:, :3]
             # Not sure about flow extraction here
-            img1_recons = flow_warp(img2_scaled, flow21)
+            img1_recons = flow_warp(img2_scaled, flow12)
 
             if i == 0:
                 s = min(H, W, D)
 
             loss_smooth = self.loss_smooth(
-                flow=flow21 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
+                flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_warp = self.loss_photometric(img1_scaled, img1_recons)
 
             log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}')
@@ -172,15 +172,15 @@ class NCCLoss(nn.modules.Module):
             # Only needed if we aggregate flow21 and dowing backward computation
             img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
 
-            flow21 = flow[:, :3]
+            flow12 = flow[:, :3]
             # Not sure about flow extraction here
-            img1_recons = flow_warp(img2_scaled, flow21)
+            img1_recons = flow_warp(img2_scaled, flow12)
 
             if i == 0:
                 s = min(H, W, D)
 
             loss_smooth = self.loss_smooth(
-                    flow=flow21 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
+                    flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_ncc = loss_ncc_func(img1_scaled, img1_recons)
 
             log(f'Computed losses for level {i + 1}: loss_smoth={loss_smooth}'
