@@ -73,6 +73,8 @@ class CT_4DDataset(Dataset):
                 name = dir_files[idx].parent.name + sample_name
                 self.patient_samples.append(
                     {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
+                self.patient_samples.append(
+                    {'name': name + '_bk', 'img1': dir_files[idx+1], 'img2': dir_files[idx], 'dim': dim})
 
 
 class CT_4DValidationset(Dataset):
@@ -113,13 +115,10 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
         self.num_of_sets = num_of_sets
         super().__init__(root,w_aug=w_aug)
         
-
         # Traverse the root directory and count it's size
         self.patient_directories = []
         self.patient_samples = []
         self.collect_samples()
-
-    
 
     def __getitem__(self, index):
         img1, vox_dim1 = file_processor(self.patient_samples[index]['img1'])
