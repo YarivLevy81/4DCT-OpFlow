@@ -38,9 +38,9 @@ class CT_4DDataset(Dataset):
             print('non_mat')
             # todo implement solution
 
-        if self.patient_samples[index]['dim'] == 512:
-            img1, img2 = crop_512_imgs_to_256(img1, img2)
-
+        # if self.patient_samples[index]['dim'] == 512:
+        #   img1, img2 = crop_512_imgs_to_256(img1, img2)
+        img1, img2 = crop_imgs_to_192_64(img1, img2, self.patient_samples[index]['dim'])
         p1, p2 = pre_augmentor(img1, img2, vox_dim1, self.w_augmentations)
         return p1, p2, sample_name
 
@@ -111,15 +111,12 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
     def __init__(self, root: str, w_aug=False, set_length=10, num_of_sets=15):
         self.set_length = set_length
         self.num_of_sets = num_of_sets
-        super().__init__(root,w_aug=w_aug)
-        
+        super().__init__(root, w_aug=w_aug)
 
         # Traverse the root directory and count it's size
         self.patient_directories = []
         self.patient_samples = []
         self.collect_samples()
-
-    
 
     def __getitem__(self, index):
         img1, vox_dim1 = file_processor(self.patient_samples[index]['img1'])
@@ -130,8 +127,8 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
             # todo implement solution
 
         if self.patient_samples[index]['dim'] == 512:
-            img1,vox_dim1 = resize_512_to_256((img1,vox_dim1))
-            img2,vox_dim2 = resize_512_to_256((img2,vox_dim2))
+            img1, vox_dim1 = resize_512_to_256((img1, vox_dim1))
+            img2, vox_dim2 = resize_512_to_256((img2, vox_dim2))
 
         p1, p2 = pre_augmentor(img1, img2, vox_dim1, False)
         return p1, p2, sample_name
@@ -159,7 +156,7 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
         self.patient_directories = sorted(self.patient_directories)
 
         for directory in self.patient_directories:
-            if len(self.patient_samples)>=self.num_of_sets*self.set_length:
+            if len(self.patient_samples) >= self.num_of_sets * self.set_length:
                 break
             dir_files = []
             for file in directory.iterdir():
@@ -171,9 +168,9 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
                 dim = 256
             else:
                 dim = 512
-            if len(dir_files)<self.set_length:
+            if len(dir_files) < self.set_length:
                 continue
-            for idx in range(self.set_length-1):
+            for idx in range(self.set_length - 1):
                 sample_name = dir_files[idx].name
                 sample_name = sample_name[sample_name.index(
                     '_'):sample_name.index('(')]
@@ -183,7 +180,7 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
             # adding last sample as apair of first image and last image of set
             # self.patient_samples.append(
             #    {'name':dir_files[idx].parent.name, 'img1':dir_files[0], 'img2':dir_files[self.set_length-1], 'dim':dim})
-            
+
             # if len(dir_files) < self.set_length:
             #     continue
             # idx = [i for i in range(self.set_length)]
@@ -210,13 +207,22 @@ def crop_512_imgs_to_256(image1, image2):
         image2[i * 256:(i + 1) * 256, j * 256:(j + 1) * 256, :])
 
 
+def crop_imgs_to_192_64(img1, img2, dim):
+    h = np.random.randint(0, dim - 192)
+    w = np.random.randint(0, dim - 192)
+    d = np.random.randint(0, img1.shape[2] - 64)
+    img1 = img1[h:h + 192, w:w + 192, d:d+64]
+    img2 = img2[h:h + 192, w:w + 192, d:d+64]
+    return img1, img2
+
+
 def resize_512_to_256(img_tup):
     img = img_tup[0]
     z = img.shape[2]
     vox_dim = img_tup[1]
-    img =zoom(img, zoom=[0.5, 0.5, 1])
-    vox_dim[0] = vox_dim[0] / 2
-    vox_dim[1] = vox_dim[1] / 2
+    img = zoom(img, zoom=[0.5, 0.5, 1])
+    vox_dim[0] = vox_dim[0] * 2
+    vox_dim[1] = vox_dim[1] * 2
 
     return img, vox_dim
 
@@ -225,7 +231,7 @@ def get_dataset(root="./raw", w_aug=False, data_type='train'):
     if data_type == 'train':
         return CT_4DDataset(root=root, w_aug=w_aug)
     if data_type == 'synthetic':
-        #return CT_4DDataset(root=root, w_aug=w_aug)
+        # return CT_4DDataset(root=root, w_aug=w_aug)
         return CT_4DValidationset(root)
     if data_type == 'variance_valid':
         return CT_4D_Variance_Valid_set(root=root, w_aug=w_aug)
