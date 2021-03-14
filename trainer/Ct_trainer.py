@@ -154,12 +154,14 @@ class TrainFramework(BaseTrainer):
     @torch.no_grad()
     def variance_validate(self):
         error = 0
+        error_short = 0
         loss = 0
+        count_len = 0
 
         flows = torch.zeros([3, 256, 256, 128], device=self.device)
         images_warped = torch.zeros(
             [self.args.variance_valid_len, 256, 256, 128], device=self.device)
-        for i_step, data in enumerate(self.valid_loader):                
+        for i_step, data in enumerate(self.valid_loader):
 
             # Prepare data
             img1, img2, name = data
@@ -168,31 +170,44 @@ class TrainFramework(BaseTrainer):
             img1 = img1.unsqueeze(1).float()  # Add channel dimension
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
-            if (i_step) % (self.args.variance_valid_len-1) == 0:
+            if i_step % (self.args.variance_valid_len - 1) == 0:
                 images_warped[i_step %
-                              (self.args.variance_valid_len-1)] = img1.squeeze(0)
+                              (self.args.variance_valid_len - 1)] = img1.squeeze(0)
+                count = 0
             # Remove batch dimension, net prediction
             res = self.model(img1, img2, vox_dim=vox_dim)[0].squeeze(0).float()
             flows += res
             # print(name)
-            images_warped[i_step % (self.args.variance_valid_len-1)] = flow_warp(img2, flows.unsqueeze(0))  # im1 recons
-            
-            if (i_step+1) % (self.args.variance_valid_len-1) == 0:
+            images_warped[i_step % (self.args.variance_valid_len - 1)] = flow_warp(img2,
+                                                                                   flows.unsqueeze(0))  # im1 recons
+            count += 1
+
+            if count == self.args.variance_valid_short_len - 1:
+                variance = torch.std(images_warped[:count + 1, :, :, :], dim=0)
+                error_short += float(variance.mean().item())
+                log(error_short)
+
+            # if (i_step + 1) % (self.args.variance_valid_len - 1) == 0:
+            if count == self.args.variance_valid_len - 1:
                 variance = torch.std(images_warped, dim=0)
                 # torch.cuda.empty_cache()
                 error += float(variance.mean().item())
                 log(error)
-                #print(f'{name} 1x')
                 flows = torch.zeros([3, 256, 256, 128]).to(self.device)
+                count = 0
             # torch.cuda.empty_cache()
 
         error /= self.args.variance_valid_sets
+        error_short /= self.args.variance_valid_sets
         # loss /= len(self.valid_loader)
-        print(f'Validation error -> {error}')
+        print(f'Validation error -> {error} ,Short Validation error -> {error_short}')
         # print(f'Validation loss -> {loss}')
 
         self.writer.add_scalar('Validation Error',
                                error,
+                               self.i_epoch)
+        self.writer.add_scalar('Validation Short Error',
+                               error_short,
                                self.i_epoch)
 
         # self.writer.add_scalar('Validation Loss',
@@ -212,7 +227,7 @@ class TrainFramework(BaseTrainer):
         for i_step, img_tuples in enumerate(self.valid_loader):
             # torch.cuda.empty_cache()
             flows = torch.zeros([3, 256, 256, 128]).to(self.device)
-            for i in range(len(img_tuples)-1):
+            for i in range(len(img_tuples) - 1):
                 # Prepare data
                 # torch.cuda.empty_cache()
 
