@@ -54,6 +54,14 @@ class TrainFramework(BaseTrainer):
                 self.writer.add_figure(
                     'Training_Samples', p_valid, self.i_iter)
 
+                _max = np.max(res[0][0])
+                _min = np.min(res[0][0])
+                _mean = np.mean(res[0][0])
+                _median = np.median(res[0][0])
+                self.writer.add_scalars('metrices',
+                                        {'max': _max, 'min': _min, 'mean': _mean, '_median': _median},
+                                        self.i_iter)
+
             print(f'Iteration {self.i_iter}, epoch {self.i_epoch}')
             print(f'Info = {key_meters}')
             # loss = 1024. * loss  # That's what they do in ARFlow
