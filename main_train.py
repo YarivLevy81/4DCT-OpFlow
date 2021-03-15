@@ -18,7 +18,6 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', help="Verbose logs") 
     parser.add_argument('-p', '--plot', action='store_true', help="Plot samples along training")
     parser.add_argument('-l', '--load', help="Model .pth.tar file")
-    parser.add_argument('--cuda_devices', default="0,1,2,3,4,5,6,7")
     args = parser.parse_args()
 
     VERBOSE = args.verbose

@@ -16,7 +16,7 @@ class TrainFramework(BaseTrainer):
             train_loader, valid_loader, model, loss_func, args)
 
         # default `log_dir` is "runs" - we'll be more specific here
-        self.writer = SummaryWriter(f'runs/research_{self.model_suffix}')
+        self.writer = SummaryWriter(f'runs/research_{self.model_suffix}_{self.args.comment}')
 
     def _run_one_epoch(self):
         key_meter_names = ['Loss', 'l_ph', 'l_sm']
@@ -48,16 +48,16 @@ class TrainFramework(BaseTrainer):
 
             self.optimizer.zero_grad()
 
-            if self.i_iter % 50 == 0:
+            if self.i_iter % 25 == 0:
                 p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res[0][0].detach().cpu(),
                                             show=False)
                 self.writer.add_figure(
                     'Training_Samples', p_valid, self.i_iter)
-
-                _max = np.max(res[0][0])
-                _min = np.min(res[0][0])
-                _mean = np.mean(res[0][0])
-                _median = np.median(res[0][0])
+                print (res[0].shape)
+                _max = torch.max(torch.abs(res[0][0,:,:,:,:]))
+                _min = torch.min(torch.abs(res[0][0,:,:,:,:]))
+                _mean = torch.mean(torch.abs(res[0][0,:,:,:,:]))
+                _median = torch.median(torch.abs(res[0][0,:,:,:,:]))
                 self.writer.add_scalars('metrices',
                                         {'max': _max, 'min': _min, 'mean': _mean, '_median': _median},
                                         self.i_iter)

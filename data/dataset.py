@@ -157,7 +157,7 @@ class CT_4D_Variance_Valid_set(CT_4DDataset):
         self.patient_directories = sorted(self.patient_directories)
 
         for directory in self.patient_directories:
-            if len(self.patient_samples) >= self.num_of_sets * self.set_length:
+            if len(self.patient_samples) >= self.num_of_sets * (self.set_length-1):
                 break
             dir_files = []
             for file in directory.iterdir():
