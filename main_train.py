@@ -7,6 +7,7 @@ from models.pwc3d import get_model
 from losses.flow_loss import get_loss
 from trainer.get_trainer import get_trainer
 import json
+import os
 from easydict import EasyDict
 from utils.misc import VERBOSE
 
@@ -17,6 +18,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', help="Verbose logs") 
     parser.add_argument('-p', '--plot', action='store_true', help="Plot samples along training")
     parser.add_argument('-l', '--load', help="Model .pth.tar file")
+    parser.add_argument('--cuda_devices', default="0,1,2,3,4,5,6,7")
     args = parser.parse_args()
 
     VERBOSE = args.verbose
@@ -28,6 +30,8 @@ if __name__ == '__main__':
     print(f'<<<<< Init experiement >>>>>')
     print(f'args={args}')
 
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_devices
     train_set = get_dataset(root=args.data_path, w_aug=True)
     valid_set = get_dataset(root=args.valid_path, w_aug=False, data_type=args.valid_type)
 

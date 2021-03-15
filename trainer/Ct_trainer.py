@@ -165,10 +165,12 @@ class TrainFramework(BaseTrainer):
         error_short = 0
         loss = 0
         count_len = 0
-
-        flows = torch.zeros([3, 256, 256, 128], device=self.device)
+        im_h=im_w = 192
+        im_d = 64
+        flows = torch.zeros([3, im_h, im_w, im_d], device=self.device)
         images_warped = torch.zeros(
-            [self.args.variance_valid_len, 256, 256, 128], device=self.device)
+            [self.args.variance_valid_len, im_h, im_w, im_d], device=self.device)
+        
         for i_step, data in enumerate(self.valid_loader):
 
             # Prepare data
@@ -201,7 +203,7 @@ class TrainFramework(BaseTrainer):
                 # torch.cuda.empty_cache()
                 error += float(variance.mean().item())
                 log(error)
-                flows = torch.zeros([3, 256, 256, 128]).to(self.device)
+                flows = torch.zeros([3, im_h, im_w, im_d], device=self.device)
                 count = 0
             # torch.cuda.empty_cache()
 
