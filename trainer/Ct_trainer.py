@@ -53,7 +53,6 @@ class TrainFramework(BaseTrainer):
                                             show=False)
                 self.writer.add_figure(
                     'Training_Samples', p_valid, self.i_iter)
-                print (res[0].shape)
                 _max = torch.max(torch.abs(res[0][0,:,:,:,:]))
                 _min = torch.min(torch.abs(res[0][0,:,:,:,:]))
                 _mean = torch.mean(torch.abs(res[0][0,:,:,:,:]))
