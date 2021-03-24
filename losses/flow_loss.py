@@ -1,3 +1,5 @@
+from math import exp
+from torch.autograd import Variable
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -44,7 +46,8 @@ class UnFlowLoss(nn.modules.Module):
             '''
 
         if self.args.w_ternary > 2:
-            loss += [self.args.w_ternary * TernaryLoss(img1_recons, img1_scaled)]
+            loss += [self.args.w_ternary *
+                     TernaryLoss(img1_recons, img1_scaled)]
         '''
         loss_val = 0
         for l in loss:
@@ -64,15 +67,14 @@ class UnFlowLoss(nn.modules.Module):
         # loss = 0
         # loss += func_smooth(flow, img1_scaled, vox_dim, self.args.alpha).mean()
         # return loss
-        
+
         loss = []
         loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
         return sum([l.mean() for l in loss])
 
-
     def forward(self, output, img1, img2, vox_dim):
         log("Computing loss")
-        vox_dim=vox_dim.squeeze(0)
+        vox_dim = vox_dim.squeeze(0)
 
         pyramid_flows = output
 
@@ -104,7 +106,8 @@ class UnFlowLoss(nn.modules.Module):
                 flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_warp = self.loss_photometric(img1_scaled, img1_recons)
 
-            log(f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}')
+            log(
+                f'Computed losses for level {i+1}: loss_warp={loss_warp}, loss_smoth={loss_smooth}')
 
             pyramid_smooth_losses.append(loss_smooth)
             pyramid_warp_losses.append(loss_warp)
@@ -121,7 +124,7 @@ class UnFlowLoss(nn.modules.Module):
         loss_warp = sum(pyramid_warp_losses)
         # loss_smooth = pyramid_smooth_losses
         # loss_warp = pyramid_warp_losses
-        
+
         # print(f'{loss_smooth}')
         # print(f'{loss_warp}')
         loss_total = loss_smooth + loss_warp
@@ -146,10 +149,11 @@ class NCCLoss(nn.modules.Module):
         # return loss
 
         loss = []
-        loss += [func_smooth(flow, img1_scaled, vox_dim, self.args.alpha)]
+        loss += [func_smooth(flow, img1_scaled, vox_dim,
+                             self.args.alpha, flow_only=self.args.smooth_flow_only)]
         return sum([l.mean() for l in loss])
 
-    #def loss_ncc(self, img, img_warped):
+    # def loss_ncc(self, img, img_warped):
     #   return NCC(img, img_warped)
 
     def forward(self, output, img1, img2, vox_dim):
@@ -157,7 +161,7 @@ class NCCLoss(nn.modules.Module):
         vox_dim = vox_dim.squeeze(0)
 
         pyramid_flows = output
-        loss_ncc_func=NCC()
+        loss_ncc_func = NCC()
         pyramid_smooth_losses = []
         pyramid_ncc_losses = []
 
@@ -180,7 +184,7 @@ class NCCLoss(nn.modules.Module):
                 s = min(H, W, D)
 
             loss_smooth = self.loss_smooth(
-                    flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
+                flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_ncc = loss_ncc_func(img1_scaled, img1_recons)
 
             log(f'Computed losses for level {i + 1}: loss_smoth={loss_smooth}'
@@ -209,8 +213,8 @@ def TernaryLoss(img, img_warp, max_distance=1):
 
     def _rgb_to_grayscale(image):
         grayscale = image[:, 0, :, :] * 0.2989 + \
-                    image[:, 1, :, :] * 0.5870 + \
-                    image[:, 2, :, :] * 0.1140
+            image[:, 1, :, :] * 0.5870 + \
+            image[:, 2, :, :] * 0.1140
         return grayscale.unsqueeze(1)
 
     def _ternary_transform(image):
@@ -218,12 +222,13 @@ def TernaryLoss(img, img_warp, max_distance=1):
         # intensities = _rgb_to_grayscale(image) * 255
         # Should be a normalized grayscale
         out_channels = patch_size * patch_size * patch_size
-        
-        w = torch.eye(patch_size) # Identity 2D-tensor of size out_channels
-        w = w.repeat(out_channels,1,patch_size,1,1) # make it 5D by stacking
+
+        w = torch.eye(patch_size)  # Identity 2D-tensor of size out_channels
+        # make it 5D by stacking
+        w = w.repeat(out_channels, 1, patch_size, 1, 1)
         log(f'size={w.size()}')
-        
-        #w = torch.eye(out_channels).view(
+
+        # w = torch.eye(out_channels).view(
         #    (out_channels, 1, patch_size, patch_size, patch_size))
         w = w.type_as(img)
         log(f'weights size={w.size()}')
@@ -231,18 +236,19 @@ def TernaryLoss(img, img_warp, max_distance=1):
         patches = F.conv3d(image, w, padding=max_distance)
         log(f'patches size={patches.size()}')
         transf = patches - image
-        transf = transf / torch.sqrt(0.81 + torch.pow(transf, 2)) #norm
+        transf = transf / torch.sqrt(0.81 + torch.pow(transf, 2))  # norm
         return transf
 
     def _hamming_distance(t1, t2):
         dist = torch.pow(t1 - t2, 2)
-        dist = dist / (0.1 + dist) #norm
-        dist = torch.mean(dist, 1, keepdim=True)  #  mean instead of sum
+        dist = dist / (0.1 + dist)  # norm
+        dist = torch.mean(dist, 1, keepdim=True)  # mean instead of sum
         return dist
 
     def _valid_mask(t, padding):
-        N, C, H, W, D  = t.size()
-        inner = torch.ones(N, 1, H - 2 * padding, W - 2 * padding, D - 2 * padding).type_as(t)
+        N, C, H, W, D = t.size()
+        inner = torch.ones(N, 1, H - 2 * padding, W - 2 *
+                           padding, D - 2 * padding).type_as(t)
         mask = F.pad(inner, [padding] * 8)
         return mask
 
@@ -294,7 +300,7 @@ def gradient(data, vox_dims=(1, 1, 1)):
         D_dx = (data[:, :, :, 1:] - data[:, :, :, :-1])
         D_dz = (data[:, :, :, :, 1:] - data[:, :, :, :, :-1])
         for sample in range(batch_size):
-            #print(f"data:{data.shape}, voxdims:{vox_dims.shape}")
+            # print(f"data:{data.shape}, voxdims:{vox_dims.shape}")
             D_dy[sample] = D_dy[sample]/vox_dims[sample, 1]
             D_dx[sample] = D_dx[sample]/vox_dims[sample, 0]
             D_dz[sample] = D_dz[sample]/vox_dims[sample, 2]
@@ -343,14 +349,12 @@ def smooth_grad_2nd(flo, image, alpha):
 
 
 # From https://github.com/jinh0park/pytorch-ssim-3D
-from torch.autograd import Variable
-from math import exp
 
 
-def _ssim_3D(img1, img2, window, window_size, channel, size_average = True):
+def _ssim_3D(img1, img2, window, window_size, channel, size_average=True):
     print(f'_ssim_3D 1')
-    mu1 = F.conv3d(img1, window, padding = window_size//2, groups = channel)
-    mu2 = F.conv3d(img2, window, padding = window_size//2, groups = channel)
+    mu1 = F.conv3d(img1, window, padding=window_size//2, groups=channel)
+    mu2 = F.conv3d(img2, window, padding=window_size//2, groups=channel)
 
     mu1_sq = mu1.pow(2)
     mu2_sq = mu2.pow(2)
@@ -358,18 +362,22 @@ def _ssim_3D(img1, img2, window, window_size, channel, size_average = True):
     mu1_mu2 = mu1*mu2
 
     print(f'_ssim_3D 2')
-    sigma1_sq = F.conv3d(img1*img1, window, padding = window_size//2, groups = channel) - mu1_sq
+    sigma1_sq = F.conv3d(
+        img1*img1, window, padding=window_size//2, groups=channel) - mu1_sq
     print(f'_ssim_3D 2.1')
-    sigma2_sq = F.conv3d(img2*img2, window, padding = window_size//2, groups = channel) - mu2_sq
+    sigma2_sq = F.conv3d(
+        img2*img2, window, padding=window_size//2, groups=channel) - mu2_sq
     print(f'_ssim_3D 2.2')
-    sigma12 = F.conv3d(img1*img2, window, padding = window_size//2, groups = channel) - mu1_mu2
+    sigma12 = F.conv3d(img1*img2, window, padding=window_size //
+                       2, groups=channel) - mu1_mu2
     print(f'_ssim_3D 2.3')
 
     C1 = 0.01**2
     C2 = 0.03**2
 
     print(f'_ssim_3D 3')
-    ssim_map = ((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*(sigma1_sq + sigma2_sq + C2))
+    ssim_map = ((2*mu1_mu2 + C1)*(2*sigma12 + C2)) / \
+        ((mu1_sq + mu2_sq + C1)*(sigma1_sq + sigma2_sq + C2))
 
     print(f'_ssim_3D 4')
     if size_average:
@@ -380,7 +388,8 @@ def _ssim_3D(img1, img2, window, window_size, channel, size_average = True):
 
 def gaussian(window_size, sigma):
     print(f'gaussian 1')
-    gauss = torch.Tensor([exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
+    gauss = torch.Tensor(
+        [exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
     print(f'gaussian 2')
     return gauss/gauss.sum()
 
@@ -389,7 +398,9 @@ def create_window_3D(window_size, channel):
     print(f'create_window_3D 1')
     _1D_window = gaussian(window_size, 1.5).unsqueeze(1)
     _2D_window = _1D_window.mm(_1D_window.t())
-    _3D_window = _1D_window.mm(_2D_window.reshape(1, -1)).reshape(window_size, window_size, window_size).float().unsqueeze(0).unsqueeze(0)
-    window = Variable(_3D_window.expand(channel, 1, window_size, window_size, window_size).contiguous())
+    _3D_window = _1D_window.mm(_2D_window.reshape(
+        1, -1)).reshape(window_size, window_size, window_size).float().unsqueeze(0).unsqueeze(0)
+    window = Variable(_3D_window.expand(
+        channel, 1, window_size, window_size, window_size).contiguous())
     print(f'create_window_3D 2')
     return window

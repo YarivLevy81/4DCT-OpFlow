@@ -159,7 +159,7 @@ def plot_training_fig(img1,img2,flow,
     plt.tight_layout()
 
     if output_path is not None and fig is not None:
-        fig.savefig(output_path)
+        fig.savefig(output_path,format='jpg')
     if show:
         plt.show()
     #return slice_x_flow_col, slice_y_flow_col, slice_z_flow_col
