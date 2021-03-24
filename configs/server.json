@@ -1,10 +1,11 @@
 {
-    "batch_size": 24,
-    "num_workers": 12,
+    "batch_size": 12,
+    "num_workers": 6,
     "test_batch_size": 1000,
-    "epochs": 50,
+    "epochs": 40,
     "lr": 0.0001,
     "gamma": 0.7,
+    "relu": 0.2,
     "no_cuda": false,
     "dry_run": false,
     "log_interval": 1,
@@ -16,8 +17,9 @@
     "checkpoint_path": "/mnt/storage/datasets/4DCT/checkpoints",
     "pretrained_model": "./models/dir",
     "n_gpu": 4,
-    "cuda_devices":"4,5,6,7",
+    "cuda_devices":"0,1,2,3",
     "alpha": 10,
+    "w_bk": true,
     "w_ternary": 1,
     "w_l1": 1,
     "w_ssim": 1,
@@ -26,10 +28,10 @@
     "w_sm_scales": [10.0, 0.0, 0.0, 0.0, 0.0],
     "w_ncc_scales": [1.0, 1.0, 1.0, 1.0, 1.0],
     "loss": "ncc",
-    "smooth_flow_only": false,
+    "smooth_flow_only": true,
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
-    "comment": "cont_sm=10_wflow_aft100_ep"
+    "comment": "sm=10,relu=0.2"
 }
 

@@ -59,9 +59,9 @@ if __name__ == '__main__':
     for i_step, data in enumerate(loader):
         # if i_step != rnd_sample:
         #   continue
-        if i_step < 9:
+        if i_step < 28:
             continue
-        if i_step == 18:
+        if i_step == 42:
             break
         img1, img2, name = data
         print(name)
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         img1 = img1.unsqueeze(1).float()  # Add channel dimension
         img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
-        flow_net = model(img1, img2, vox_dim=vox_dim)[0].squeeze(0).float()
+        flow_net = model(img1, img2, vox_dim=vox_dim,w_bk=False)['flows_fw'][0].squeeze(0).float()
 
         # img1 = img1[0].unsqueeze(1).float()  # Add channel dimension
         # img2 = img2[0].unsqueeze(1).float()  # Add channel dimension
@@ -82,7 +82,7 @@ if __name__ == '__main__':
         # plot_image(img2)
 
         if big_flows:
-            flow_net=torch.where(flow_net.detach().double() < 1, 0.0, flow_net.detach().double())
+            flow_net=torch.where(flow_net.detach().double() < 0.25, 0.0, flow_net.detach().double())
 
         if args.synthetic:
             # Real flow plot

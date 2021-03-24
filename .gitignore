@@ -141,6 +141,7 @@ cython_debug/
 .vscode
 .idea
 
+demo_pics/
 runs/
 models/dir/
 data/raw_validation/

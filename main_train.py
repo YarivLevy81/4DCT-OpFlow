@@ -15,7 +15,7 @@ from utils.misc import VERBOSE
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='4DCT Optical Flow Net')
     parser.add_argument('-c', '--config', default='configs/base.json', help="Path (absolute or relative) for 4DCT data")
-    parser.add_argument('-v', '--verbose', action='store_true', help="Verbose logs") 
+    parser.add_argument('-v', '--verbose', action='store_true', help="Verbose logs")
     parser.add_argument('-p', '--plot', action='store_true', help="Plot samples along training")
     parser.add_argument('-l', '--load', help="Model .pth.tar file")
     args = parser.parse_args()
@@ -29,7 +29,6 @@ if __name__ == '__main__':
     print(f'<<<<< Init experiement >>>>>')
     print(f'args={args}')
 
-
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_devices
     train_set = get_dataset(root=args.data_path, w_aug=True)
     valid_set = get_dataset(root=args.valid_path, w_aug=False, data_type=args.valid_type)
@@ -42,7 +41,7 @@ if __name__ == '__main__':
         train_set, batch_size=args.batch_size,
         num_workers=args.num_workers, pin_memory=False, shuffle=True
     )
-    
+
     valid_loader = torch.utils.data.DataLoader(
         valid_set, batch_size=1,
         num_workers=8, pin_memory=True, shuffle=False

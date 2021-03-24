@@ -73,8 +73,8 @@ class CT_4DDataset(Dataset):
                 name = dir_files[idx].parent.name + sample_name
                 self.patient_samples.append(
                     {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
-                self.patient_samples.append(
-                    {'name': name + '_bk', 'img1': dir_files[idx+1], 'img2': dir_files[idx], 'dim': dim})
+                # self.patient_samples.append(
+                #    {'name': name + '_bk', 'img1': dir_files[idx+1], 'img2': dir_files[idx], 'dim': dim})
 
 
 class CT_4DValidationset(Dataset):

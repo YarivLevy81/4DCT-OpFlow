@@ -177,8 +177,10 @@ class NCCLoss(nn.modules.Module):
             img2_scaled = F.interpolate(img2, (H, W, D), mode='area')
 
             flow12 = flow[:, :3]
+            flow21 = flow[:, 3:]
             # Not sure about flow extraction here
             img1_recons = flow_warp(img2_scaled, flow12)
+            img2_recons = flow_warp(img1_scaled, flow21)
 
             if i == 0:
                 s = min(H, W, D)
@@ -186,6 +188,12 @@ class NCCLoss(nn.modules.Module):
             loss_smooth = self.loss_smooth(
                 flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_ncc = loss_ncc_func(img1_scaled, img1_recons)
+            if self.args.w_bk:
+                loss_smooth += self.loss_smooth(
+                    flow=flow21 / s, img1_scaled=img2_recons, vox_dim=vox_dim)
+                loss_ncc += loss_ncc_func(img2_scaled, img2_recons)
+                loss_smooth /= 2.
+                loss_ncc /= 2.
 
             log(f'Computed losses for level {i + 1}: loss_smoth={loss_smooth}'
                 f'loss_ncc={loss_ncc}')

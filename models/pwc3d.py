@@ -19,7 +19,7 @@ class PWC3D(nn.Module):
         self.num_chs = [1, 16, 32, 64, 96, 128, 192]
         self.output_level = 4
         self.num_levels = 7
-        self.leakyRELU = nn.LeakyReLU(0.1, inplace=True)
+        self.leakyRELU = nn.LeakyReLU(args.relu, inplace=True)
         self.n_frames = 2
         self.feature_pyramid_extractor = FeatureExtractor(self.num_chs)
 
@@ -72,13 +72,19 @@ class PWC3D(nn.Module):
             if layer.bias is not None:
                 nn.init.constant_(layer.bias, 0)
 
-    def forward(self, x1: torch.Tensor, x2: torch.Tensor, vox_dim):
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor, vox_dim, w_bk=True):
 
         x1_p = self.feature_pyramid_extractor(x1) + [x1]
         x2_p = self.feature_pyramid_extractor(x2) + [x2]
 
         log(f'Pyramidized inputs')
+        res_dict={}
+        res_dict['flows_fw'] = self.forward_2_frames(x1_p, x2_p)
+        if w_bk:
+            res_dict['flows_bk'] = self.forward_2_frames(x2_p,x1_p)
+        return res_dict
 
+    def forward_2_frames(self, x1_p: torch.Tensor, x2_p: torch.Tensor):
         # init
         flows = []
         N, C, H, W, D = x1_p[0].size()
@@ -106,7 +112,7 @@ class PWC3D(nn.Module):
 
             # concat and estimate flow
             x1_1by1 = self.conv_1x1[l](_x1)
-            log(f'Sizes - x1={x1.size()}, x2={x2.size()}, x1_1b1y={x1_1by1.size()}, out_corr_relu = {out_corr_relu.size()}, flow={flow12.size()}')
+            log(f'Sizes - x1={_x1.size()}, x2={_x2.size()}, x1_1b1y={x1_1by1.size()}, out_corr_relu = {out_corr_relu.size()}, flow={flow12.size()}')
 
             x_intm, flow_res = self.flow_estimators(
                 torch.cat([out_corr_relu, x1_1by1, flow12], dim=1))

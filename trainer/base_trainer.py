@@ -20,7 +20,7 @@ class BaseTrainer:
         self.args = args
 
         self.model = self._init_model(model)
-        #self.model.apply(self.model.module.init_weights)
+        # self.model.apply(self.model.module.init_weights)
         self.optimizer = self._get_optimizer()
         self.loss_func = loss_func
         self.loss_func = torch.nn.DataParallel(self.loss_func, device_ids=self.device_ids)
@@ -43,7 +43,7 @@ class BaseTrainer:
                 self.save_model(error, f'4DCT_{self.model_suffix}_{self.i_epoch}')
 
             self.i_epoch += 1
-        
+
         e = '%.3f' % error
         l = '%.3f' % loss
         # TODO: save with error
@@ -64,7 +64,7 @@ class BaseTrainer:
             {'params': weight_parameters(self.model),
              'weight_decay': 1e-6}]
 
-        return torch.optim.Adam(param_groups, self.args.lr, 
+        return torch.optim.Adam(param_groups, self.args.lr,
                                 betas=(0.9, 0.999), eps=1e-7)
 
     def _init_model(self, model):
@@ -87,13 +87,13 @@ class BaseTrainer:
             model.apply(model.init_weights)
 
         if torch.cuda.device_count() > 1 and self.device != torch.device('cpu'):
-            #from torch.nn.parallel import DistributedDataParallel as DDP
-            #import torch.distributed as dist
-            #dist.init_process_group(backend="nccl", rank=8)
-            
+            # from torch.nn.parallel import DistributedDataParallel as DDP
+            # import torch.distributed as dist
+            # dist.init_process_group(backend="nccl", rank=8)
+
             print(f'Data parlelling the model')
             model = torch.nn.DataParallel(model, device_ids=self.device_ids)
-            #model = DDP(model, device_ids=self.device_ids)
+            # model = DDP(model, device_ids=self.device_ids)
 
         return model
 
