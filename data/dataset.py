@@ -38,9 +38,13 @@ class CT_4DDataset(Dataset):
             print('non_mat')
             # todo implement solution
 
-        # if self.patient_samples[index]['dim'] == 512:
+        if self.patient_samples[index]['dim'] == 512:
+            img1, vox_dim1 = resize_512_to_256((img1, vox_dim1))
+            img2, vox_dim2 = resize_512_to_256((img2, vox_dim2))
         #   img1, img2 = crop_512_imgs_to_256(img1, img2)
-        img1, img2 = crop_imgs_to_192_64(img1, img2, self.patient_samples[index]['dim'])
+
+        img1, img2 = crop_imgs_to_192_64(img1, img2, 256)
+        #img1, img2 = crop_imgs_to_192_64(img1, img2, self.patient_samples[index]['dim'])
         p1, p2 = pre_augmentor(img1, img2, vox_dim1, self.w_augmentations)
         return p1, p2, sample_name
 
