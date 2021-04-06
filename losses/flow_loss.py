@@ -161,7 +161,7 @@ class NCCLoss(nn.modules.Module):
         vox_dim = vox_dim.squeeze(0)
 
         pyramid_flows = output
-        loss_ncc_func = NCC()
+        loss_ncc_func = NCC(win=self.args.ncc_win)
         pyramid_smooth_losses = []
         pyramid_ncc_losses = []
 

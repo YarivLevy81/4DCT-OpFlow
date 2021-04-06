@@ -1,6 +1,6 @@
 {
-    "batch_size": 12,
-    "num_workers": 6,
+    "batch_size": 9,
+    "num_workers": 5,
     "test_batch_size": 1000,
     "epochs": 160,
     "lr": 0.0001,
@@ -16,8 +16,8 @@
     "valid_type": "variance_valid",
     "checkpoint_path": "/mnt/storage/datasets/4DCT/checkpoints",
     "pretrained_model": "./models/dir",
-    "n_gpu": 4,
-    "cuda_devices":"0,1,2,3",
+    "n_gpu": 3,
+    "cuda_devices":"1,2,3",
     "alpha": 10,
     "w_bk": true,
     "w_ternary": 1,
@@ -25,13 +25,14 @@
     "w_ssim": 1,
     "warp_pad": "border",
     "w_scales": [1.0, 1.0, 1.0, 1.0, 0.0],
-    "w_sm_scales": [10.0, 0.0, 0.0, 0.0, 0.0],
+    "w_sm_scales": [25.0, 0.0, 0.0, 0.0, 0.0],
     "w_ncc_scales": [1.0, 1.0, 1.0, 1.0, 1.0],
     "loss": "ncc",
+    "ncc_win" : 3,
     "smooth_flow_only": true,
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
-    "comment": "sm=10,relu=0.2,from epoch 40"
+    "comment": "sm25_relu02,ncc3"
 }
 

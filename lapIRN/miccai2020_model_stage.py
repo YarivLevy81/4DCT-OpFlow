@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from Functions import generate_grid_unit
+from lapIRN.Functions import generate_grid_unit
 
 
 
