@@ -27,13 +27,13 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float,
                         dest="lr", default=1e-4, help="learning rate")
     parser.add_argument("--iteration_lvl1", type=int,
-                        dest="iteration_lvl1", default=30001,
+                        dest="iteration_lvl1", default=40001,
                         help="number of lvl1 iterations")
     parser.add_argument("--iteration_lvl2", type=int,
-                        dest="iteration_lvl2", default=30001,
+                        dest="iteration_lvl2", default=40001,
                         help="number of lvl2 iterations")
     parser.add_argument("--iteration_lvl3", type=int,
-                        dest="iteration_lvl3", default=60001,
+                        dest="iteration_lvl3", default=80001,
                         help="number of lvl3 iterations")
     parser.add_argument("--antifold", type=float,
                         dest="antifold", default=0.,
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     iteration_lvl2 = opt.iteration_lvl2
     iteration_lvl3 = opt.iteration_lvl3
 
-    model_name = "LDR_OASIS_NCC_unit_add_reg_35_"
+    model_name = "LDR_4dct_one_pass"
 
     # imgshape = (160, 192, 144)
     # imgshape_4 = (160/4, 192/4, 144/4)
@@ -595,7 +595,7 @@ if __name__ == '__main__':
         np.save(model_dir + '/loss' + model_name + 'stagelvl3.npy', lossall)
         return model
 
-    #model_lvl1 = train_lvl1()
-    #model_lvl2 = train_lvl2(model_lvl1)
-    #model_lvl3 = train_lvl3(model_lvl2)
-    model_lvl3 = train_lvl3(None)
+    model_lvl1 = train_lvl1()
+    model_lvl2 = train_lvl2(model_lvl1)
+    model_lvl3 = train_lvl3(model_lvl2)
+    #model_lvl3 = train_lvl3(None)

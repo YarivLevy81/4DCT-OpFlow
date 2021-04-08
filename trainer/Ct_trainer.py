@@ -171,6 +171,7 @@ class TrainFramework(BaseTrainer):
     def variance_validate(self):
         error = 0
         error_short = 0
+        max_diff_error = 0
         loss = 0
         im_h = im_w = 192
         im_d = 64
@@ -207,6 +208,13 @@ class TrainFramework(BaseTrainer):
 
             # if (i_step + 1) % (self.args.variance_valid_len - 1) == 0:
             if count == self.args.variance_valid_len - 1:
+                # calculating max_diff variance
+                diff_warp = torch.zeros([2, im_h, im_w, im_d], device=self.device)
+                diff_warp[0] = images_warped[0]
+                diff_warp[1] = images_warped[-1]
+                diff_variance = torch.std(diff_warp, dim=0)
+                max_diff_error += float(diff_variance.mean().item())
+
                 variance = torch.std(images_warped, dim=0)
                 # torch.cuda.empty_cache()
                 error += float(variance.mean().item())
@@ -215,13 +223,17 @@ class TrainFramework(BaseTrainer):
                 count = 0
             # torch.cuda.empty_cache()
 
+        max_diff_error /= self.args.variance_valid_sets
         error /= self.args.variance_valid_sets
         error_short /= self.args.variance_valid_sets
         # loss /= len(self.valid_loader)
         print(
-            f'Validation error -> {error} ,Short Validation error -> {error_short}')
+            f'Validation maxDiff error-> {max_diff_error}, Validation error -> {error} ,Short Validation error -> {error_short}')
         # print(f'Validation loss -> {loss}')
 
+        self.writer.add_scalar('Validation Difference_Error',
+                               max_diff_error,
+                               self.i_epoch)
         self.writer.add_scalar('Validation Error',
                                error,
                                self.i_epoch)
