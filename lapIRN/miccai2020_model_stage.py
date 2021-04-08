@@ -6,9 +6,8 @@ import torch.nn.functional as F
 from lapIRN.Functions import generate_grid_unit
 
 
-
 class Miccai2020_LDR_laplacian_unit_add_lvl1(nn.Module):
-    def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4):
+    def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4, device=None):
         super(Miccai2020_LDR_laplacian_unit_add_lvl1, self).__init__()
         self.in_channel = in_channel
         self.n_classes = n_classes
@@ -20,10 +19,10 @@ class Miccai2020_LDR_laplacian_unit_add_lvl1(nn.Module):
         self.imgshape = imgshape
 
         self.grid_1 = generate_grid_unit(self.imgshape)
-        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).cuda().float()
+        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).to(device).float()
 
-        self.diff_transform = DiffeomorphicTransform_unit(time_step=7).cuda()
-        self.transform = SpatialTransform_unit().cuda()
+        self.diff_transform = DiffeomorphicTransform_unit(time_step=7).to(device)
+        self.transform = SpatialTransform_unit().to(device)
 
         bias_opt = False
 
@@ -118,7 +117,7 @@ class Miccai2020_LDR_laplacian_unit_add_lvl1(nn.Module):
 
 
 class Miccai2020_LDR_laplacian_unit_add_lvl2(nn.Module):
-    def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4, model_lvl1=None):
+    def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4, model_lvl1=None, device= None):
         super(Miccai2020_LDR_laplacian_unit_add_lvl2, self).__init__()
         self.in_channel = in_channel
         self.n_classes = n_classes
@@ -132,10 +131,10 @@ class Miccai2020_LDR_laplacian_unit_add_lvl2(nn.Module):
         self.model_lvl1 = model_lvl1
 
         self.grid_1 = generate_grid_unit(self.imgshape)
-        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).cuda().float()
+        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).to(device).float()
 
-        self.diff_transform = DiffeomorphicTransform_unit(time_step=7).cuda()
-        self.transform = SpatialTransform_unit().cuda()
+        self.diff_transform = DiffeomorphicTransform_unit(time_step=7).to(device)
+        self.transform = SpatialTransform_unit().to(device)
 
         bias_opt = False
 
@@ -243,7 +242,7 @@ class Miccai2020_LDR_laplacian_unit_add_lvl2(nn.Module):
 
 class Miccai2020_LDR_laplacian_unit_add_lvl3(nn.Module):
     def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4,
-                 model_lvl2=None):
+                 model_lvl2=None, device=None):
         super(Miccai2020_LDR_laplacian_unit_add_lvl3, self).__init__()
         self.in_channel = in_channel
         self.n_classes = n_classes
@@ -257,10 +256,10 @@ class Miccai2020_LDR_laplacian_unit_add_lvl3(nn.Module):
         self.model_lvl2 = model_lvl2
 
         self.grid_1 = generate_grid_unit(self.imgshape)
-        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).cuda().float()
+        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).to(device).float()
 
-        self.diff_transform = DiffeomorphicTransform_unit(time_step=7).cuda()
-        self.transform = SpatialTransform_unit().cuda()
+        self.diff_transform = DiffeomorphicTransform_unit(time_step=7).to(device)
+        self.transform = SpatialTransform_unit().to(device)
 
         bias_opt = False
 
@@ -363,7 +362,7 @@ class Miccai2020_LDR_laplacian_unit_add_lvl3(nn.Module):
 
 
 class Miccai2020_LDR_laplacian_unit_disp_add_lvl1(nn.Module):
-    def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4):
+    def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4,device=None):
         super(Miccai2020_LDR_laplacian_unit_disp_add_lvl1, self).__init__()
         self.in_channel = in_channel
         self.n_classes = n_classes
@@ -375,9 +374,9 @@ class Miccai2020_LDR_laplacian_unit_disp_add_lvl1(nn.Module):
         self.imgshape = imgshape
 
         self.grid_1 = generate_grid_unit(self.imgshape)
-        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).cuda().float()
+        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).to(device).float()
 
-        self.transform = SpatialTransform_unit().cuda()
+        self.transform = SpatialTransform_unit().to(device)
 
         bias_opt = False
 
@@ -471,7 +470,7 @@ class Miccai2020_LDR_laplacian_unit_disp_add_lvl1(nn.Module):
 
 
 class Miccai2020_LDR_laplacian_unit_disp_add_lvl2(nn.Module):
-    def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4, model_lvl1=None):
+    def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4, model_lvl1=None, device=None):
         super(Miccai2020_LDR_laplacian_unit_disp_add_lvl2, self).__init__()
         self.in_channel = in_channel
         self.n_classes = n_classes
@@ -485,9 +484,9 @@ class Miccai2020_LDR_laplacian_unit_disp_add_lvl2(nn.Module):
         self.model_lvl1 = model_lvl1
 
         self.grid_1 = generate_grid_unit(self.imgshape)
-        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).cuda().float()
+        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).to(device).float()
 
-        self.transform = SpatialTransform_unit().cuda()
+        self.transform = SpatialTransform_unit().to(device)
 
         bias_opt = False
 
@@ -594,7 +593,7 @@ class Miccai2020_LDR_laplacian_unit_disp_add_lvl2(nn.Module):
 
 class Miccai2020_LDR_laplacian_unit_disp_add_lvl3(nn.Module):
     def __init__(self, in_channel, n_classes, start_channel, is_train=True, imgshape=(160, 192, 144), range_flow=0.4,
-                 model_lvl2=None):
+                 model_lvl2=None, device=None):
         super(Miccai2020_LDR_laplacian_unit_disp_add_lvl3, self).__init__()
         self.in_channel = in_channel
         self.n_classes = n_classes
@@ -608,9 +607,9 @@ class Miccai2020_LDR_laplacian_unit_disp_add_lvl3(nn.Module):
         self.model_lvl2 = model_lvl2
 
         self.grid_1 = generate_grid_unit(self.imgshape)
-        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).cuda().float()
+        self.grid_1 = torch.from_numpy(np.reshape(self.grid_1, (1,) + self.grid_1.shape)).to(device).float()
 
-        self.transform = SpatialTransform_unit().cuda()
+        self.transform = SpatialTransform_unit().to(device)
 
         bias_opt = False
 

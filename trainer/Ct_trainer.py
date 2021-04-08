@@ -3,7 +3,7 @@ from .base_trainer import BaseTrainer
 from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
-from utils.visualization_utils import plot_validation_fig, plot_training_fig, plot_image
+from utils.visualization_utils import plot_validation_fig, plot_training_fig, plot_image, plot_images
 from utils.warp_utils import flow_warp
 import numpy as np
 from losses.flow_loss import get_loss
@@ -52,7 +52,7 @@ class TrainFramework(BaseTrainer):
 
             self.optimizer.zero_grad()
 
-            if self.i_iter % 25 == 0 or self.i_iter==1:
+            if self.i_iter % 25 == 0 or self.i_iter == 1:
                 p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res_dict['flows_fw'][0][0].detach().cpu(),
                                             show=False)
                 self.writer.add_figure(
@@ -233,8 +233,10 @@ class TrainFramework(BaseTrainer):
         #                        loss,
         #                        self.i_epoch)
 
-        p_valid = plot_image(variance.detach().cpu(), show=False)
+        p2_valid = plot_images(images_warped[0].detach().cpu(
+        ), images_warped[-1].detach().cpu(), img2.detach().cpu(), show=False)
+        #p_valid = plot_image(variance.detach().cpu(), show=False)
         #                               flow12_net.detach().cpu(), show=False)
-        self.writer.add_figure('Valid_Images', p_valid, self.i_epoch)
+        self.writer.add_figure('Valid_Images', p2_valid, self.i_epoch)
 
         return error  # , loss

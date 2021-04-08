@@ -90,18 +90,17 @@ if __name__ == '__main__':
     valid_set = get_dataset(root=data_path, w_aug=False,
                             data_type="variance_valid")
 
-    
-
     valid_loader = torch.utils.data.DataLoader(
         valid_set, batch_size=1,
         num_workers=8, pin_memory=True, shuffle=False
     )
 
     writer = SummaryWriter(
-            f'runs/lapIRN_research_{model_suffix}')
-    epoch = 1
-    glob_step = 0
+        f'runs/lapIRN_research_{model_suffix}')
+    epoch = 48
+    glob_step = 60
 
+    @torch.no_grad()
     def var_validate(model, epoch_num):
         variance_valid_len = 10
         variance_valid_sets = 15
@@ -131,10 +130,10 @@ if __name__ == '__main__':
             #    'flows_fw'][0].squeeze(0).float()
             F_X_Y, X_Y, Y_4x, F_xy, F_xy_lvl1, F_xy_lvl2, _ = model(img1, img2)
 
-            flows += F_xy
+            flows += F_xy.squeeze(0)
             # print(name)
             images_warped[i_step % (variance_valid_len - 1)] = flow_warp(img2,
-                                                                                   flows.unsqueeze(0))  # im1 recons
+                                                                         flows.unsqueeze(0))  # im1 recons
             count += 1
 
             if count == int(variance_valid_len//2) - 1:
@@ -160,11 +159,11 @@ if __name__ == '__main__':
         # print(f'Validation loss -> {loss}')
 
         writer.add_scalar('Validation Error',
-                               error,
-                               epoch_num)
+                          error,
+                          epoch_num)
         writer.add_scalar('Validation Short Error',
-                               error_short,
-                               epoch_num)
+                          error_short,
+                          epoch_num)
 
         # self.writer.add_scalar('Validation Loss',
         #                        loss,
@@ -181,7 +180,7 @@ if __name__ == '__main__':
         # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         model = Miccai2020_LDR_laplacian_unit_add_lvl1(
-            2, 3, start_channel, is_train=True, imgshape=imgshape_4, range_flow=range_flow).to(device)
+            2, 3, start_channel, is_train=True, imgshape=imgshape_4, range_flow=range_flow, device=device).to(device)
 
         loss_similarity = NCC(win=3)
         loss_smooth = smoothloss
@@ -212,7 +211,7 @@ if __name__ == '__main__':
         # training_generator = Data.DataLoader(train_set, batch_size=1,pin_memory=False,
         #                                    shuffle=True, num_workers=4)
         training_generator = Data.DataLoader(train_set, batch_size=1, pin_memory=False,
-                                            shuffle=True, num_workers=4)
+                                             shuffle=True, num_workers=4)
         global glob_step
         global epoch
         step = 0
@@ -264,8 +263,8 @@ if __name__ == '__main__':
                         step, loss.item(), loss_multiNCC.item(), loss_Jacobian.item(), loss_regulation.item()))
                 sys.stdout.flush()
                 writer.add_scalar('Training Loss',
-                                   loss.mean().item(),
-                                   glob_step)
+                                  loss.mean().item(),
+                                  glob_step)
 
                 # with lr 1e-3 + with bias
                 if (step % n_checkpoint == 0):
@@ -288,9 +287,9 @@ if __name__ == '__main__':
                     _median = torch.median(
                         torch.abs(F_xy))
                     writer.add_scalars('metrices',
-                                            {'max': _max, 'min': _min,
-                                                'mean': _mean, '_median': _median},
-                                            glob_step)
+                                       {'max': _max, 'min': _min,
+                                        'mean': _mean, '_median': _median},
+                                       glob_step)
                 step += 1
                 glob_step += 1
 
@@ -307,7 +306,7 @@ if __name__ == '__main__':
         # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         if model_lvl1 is None:
             model_lvl1 = Miccai2020_LDR_laplacian_unit_add_lvl1(2, 3, start_channel, is_train=True, imgshape=imgshape_4,
-                                                range_flow=range_flow).to(device)
+                                                                range_flow=range_flow,device=device).to(device)
 
             # model_path = "../Model/Stage/LDR_LPBA_NCC_1_1_stagelvl1_1500.pth"
             model_path = sorted(
@@ -320,7 +319,7 @@ if __name__ == '__main__':
             param.requires_grad = False
 
         model = Miccai2020_LDR_laplacian_unit_add_lvl2(2, 3, start_channel, is_train=True, imgshape=imgshape_2,
-                                            range_flow=range_flow, model_lvl1=model_lvl1).to(device)
+                                                       range_flow=range_flow, model_lvl1=model_lvl1).to(device)
 
         loss_similarity = multi_resolution_NCC(win=5, scale=2)
         loss_smooth = smoothloss
@@ -350,7 +349,7 @@ if __name__ == '__main__':
         # training_generator = Data.DataLoader(Dataset_epoch(names, norm=False), batch_size=1,
         #                                    shuffle=True, num_workers=2)
         training_generator = Data.DataLoader(train_set, batch_size=1, pin_memory=False,
-                                            shuffle=True, num_workers=4)
+                                             shuffle=True, num_workers=4)
 
         global glob_step
         global epoch
@@ -402,8 +401,8 @@ if __name__ == '__main__':
                         step, loss.item(), loss_multiNCC.item(), loss_Jacobian.item(), loss_regulation.item()))
                 sys.stdout.flush()
                 writer.add_scalar('Training Loss',
-                                   loss.mean().item(),
-                                   glob_step)
+                                  loss.mean().item(),
+                                  glob_step)
 
                 # with lr 1e-3 + with bias
                 if (step % n_checkpoint == 0):
@@ -426,9 +425,9 @@ if __name__ == '__main__':
                     _median = torch.median(
                         torch.abs(F_xy))
                     writer.add_scalars('metrices',
-                                            {'max': _max, 'min': _min,
-                                                'mean': _mean, '_median': _median},
-                                            glob_step)
+                                       {'max': _max, 'min': _min,
+                                        'mean': _mean, '_median': _median},
+                                       glob_step)
 
                 if step == freeze_step:
                     model.unfreeze_modellvl1()
@@ -449,12 +448,19 @@ if __name__ == '__main__':
         # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         if model_lvl2 is None:
             model_lvl1 = Miccai2020_LDR_laplacian_unit_add_lvl1(2, 3, start_channel, is_train=True, imgshape=imgshape_4,
-                                                    range_flow=range_flow).to(device)
+                                                                range_flow=range_flow,device=device).to(device)
             model_lvl2 = Miccai2020_LDR_laplacian_unit_add_lvl2(2, 3, start_channel, is_train=True, imgshape=imgshape_2,
-                                                range_flow=range_flow, model_lvl1=model_lvl1).to(device)
+                                                                range_flow=range_flow, model_lvl1=model_lvl1,device=device).to(device)
 
-        model = Miccai2020_LDR_laplacian_unit_add_lvl3(2, 3, start_channel, is_train=True, imgshape=imgshape,
-                                            range_flow=range_flow, model_lvl2=model_lvl2).to(device)
+            model_path = "../Model/Stage/LDR_LPBA_NCC_1_1_stagelvl1_1500.pth"
+            model_path = "/mnt/storage/datasets/4DCT/checkpoints_lapIRN"
+            model_path = sorted(
+                glob.glob(model_path+"/" + model_name + "stagelvl2_?????.pth"))[-1]
+            model_lvl2.load_state_dict(torch.load(model_path))
+            print("Loading weight for model_lvl2...", model_path)
+
+        model = Miccai2020_LDR_laplacian_unit_add_lvl3(
+            2, 3, start_channel, is_train=True, imgshape=imgshape, range_flow=range_flow, model_lvl2=model_lvl2).to(device)
 
         loss_similarity = multi_resolution_NCC(win=7, scale=3)
 
@@ -491,7 +497,7 @@ if __name__ == '__main__':
         # training_generator = Data.DataLoader(Dataset_epoch(names, norm=False), batch_size=1,
         #                                    shuffle=True, num_workers=2)
         training_generator = Data.DataLoader(train_set, batch_size=1, pin_memory=False,
-                                            shuffle=True, num_workers=4)
+                                             shuffle=True, num_workers=4)
         global glob_step
         global epoch
         step = 0
@@ -542,8 +548,8 @@ if __name__ == '__main__':
                         step, loss.item(), loss_multiNCC.item(), loss_Jacobian.item(), loss_regulation.item()))
                 sys.stdout.flush()
                 writer.add_scalar('Training Loss',
-                                   loss.mean().item(),
-                                   glob_step)
+                                  loss.mean().item(),
+                                  glob_step)
 
                 # with lr 1e-3 + with bias
                 if (step % n_checkpoint == 0):
@@ -568,9 +574,9 @@ if __name__ == '__main__':
                     _median = torch.median(
                         torch.abs(F_xy))
                     writer.add_scalars('metrices',
-                                            {'max': _max, 'min': _min,
-                                                'mean': _mean, '_median': _median},
-                                            glob_step)
+                                       {'max': _max, 'min': _min,
+                                        'mean': _mean, '_median': _median},
+                                       glob_step)
                 if step == freeze_step:
                     model.unfreeze_modellvl2()
 
@@ -582,12 +588,14 @@ if __name__ == '__main__':
             var_validate(model, epoch)
             print("one epoch pass")
             epoch += 1
-        
-        modelname = model_dir + '/' + model_name + "stagelvl3_finished" + str(step) + '.pth'
+
+        modelname = model_dir + '/' + model_name + \
+            "stagelvl3_finished" + str(step) + '.pth'
         torch.save(model.state_dict(), modelname)
         np.save(model_dir + '/loss' + model_name + 'stagelvl3.npy', lossall)
         return model
 
-    model_lvl1 = train_lvl1()
-    model_lvl2 = train_lvl2(model_lvl1)
-    model_lvl3 = train_lvl3(model_lvl2)
+    #model_lvl1 = train_lvl1()
+    #model_lvl2 = train_lvl2(model_lvl1)
+    #model_lvl3 = train_lvl3(model_lvl2)
+    model_lvl3 = train_lvl3(None)

@@ -2,7 +2,7 @@
     "batch_size": 12,
     "num_workers": 6,
     "test_batch_size": 1000,
-    "epochs": 100,
+    "epochs": 25,
     "lr": 0.0001,
     "gamma": 0.7,
     "relu": 0.2,
@@ -28,11 +28,11 @@
     "w_sm_scales": [50.0, 0.0, 0.0, 0.0, 0.0],
     "w_ncc_scales": [1.0, 0.5, 0.25, 0.125, 0.0625],
     "loss": "ncc",
-    "ncc_win" : 5,
+    "ncc_win" : 7,
     "smooth_flow_only": true,
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
-    "comment": "con_sm=50,pyr_ncc_scale_from_ep200"
+    "comment": "con_sm=50,pyr_ncc_scale_from_ep300"
 }
 
