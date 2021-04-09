@@ -21,6 +21,14 @@ class UnFlowLoss(nn.modules.Module):
     def __init__(self, args):
         super(UnFlowLoss, self).__init__()
         self.args = args
+    
+    def loss_admm(self, q, c, beta):
+        loss = []
+
+        if self.args.w_admm > 0:
+            loss += [(q - c + beta)**2]
+
+        return self.args.w_admm * self.args.admm_rho / 2 * sum([l.mean() for l in loss])
 
     def loss_photometric(self, img1_scaled, img1_recons):
         loss = []
@@ -158,14 +166,27 @@ class NCCLoss(nn.modules.Module):
     # def loss_ncc(self, img, img_warped):
     #   return NCC(img, img_warped)
 
-    def forward(self, output, img1, img2, vox_dim):
+    def loss_admm(self, q, c, beta):
+        loss = []
+
+        if self.args.w_admm > 0:
+            loss += [(q - c + beta)**2]
+
+        return self.args.w_admm * self.args.admm_rho / 2 * sum([l.mean() for l in loss])
+
+    def forward(self, output, img1, img2, aux, vox_dim):
         log("Computing loss")
         vox_dim = vox_dim.squeeze(0)
 
         pyramid_flows = output
         loss_ncc_func = NCC(win=self.ncc_win)
+        
         pyramid_smooth_losses = []
         pyramid_ncc_losses = []
+        pyramid_admm_losses = []
+
+        aux12 = aux[0]
+        aux21 = aux[1]
 
         s = 1.
         for i, flow in enumerate(pyramid_flows):
@@ -190,31 +211,46 @@ class NCCLoss(nn.modules.Module):
             loss_smooth = self.loss_smooth(
                 flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_ncc = loss_ncc_func(img1_scaled, img1_recons)
+
+            if i == len(pyramid_flows)-1 and self.args.w_admm > 0:
+                loss_admm = self.loss_admm(aux12["q"][0], aux12["c"][0], aux12["betas"][0])
+            else:
+                loss_admm = torch.zeros(1, device=loss_ncc.device)
+
             if self.args.w_bk:
                 loss_smooth += self.loss_smooth(
                     flow=flow21 / s, img1_scaled=img2_recons, vox_dim=vox_dim)
                 loss_ncc += loss_ncc_func(img2_scaled, img2_recons)
+
+                if i == len(pyramid_flows)-1 and self.args.w_admm > 0:
+                    loss_admm += self.loss_admm(aux21["q"][0], aux21["c"][0], aux21["betas"][0])
+
                 loss_smooth /= 2.
                 loss_ncc /= 2.
+                loss_admm /= 2.
 
             log(f'Computed losses for level {i + 1}: loss_smoth={loss_smooth}'
                 f'loss_ncc={loss_ncc}')
 
             pyramid_smooth_losses.append(loss_smooth)
             pyramid_ncc_losses.append(loss_ncc)
+            pyramid_admm_losses.append(loss_admm)
             # torch.cuda.empty_cache()
 
         pyramid_smooth_losses = [l * w for l, w in
                                  zip(pyramid_smooth_losses, self.args.w_sm_scales)]
         pyramid_ncc_losses = [l * w for l, w in
                               zip(pyramid_ncc_losses, self.w_ncc_scales)]
+        pyramid_admm_losses = [l * w for l, w in
+                              zip(pyramid_ncc_losses, self.args.w_admm)]
         log(f'Weighting losses')
 
         loss_smooth = sum(pyramid_smooth_losses)
         loss_ncc = sum(pyramid_ncc_losses)
-        loss_total = loss_smooth + loss_ncc
+        loss_admm = sum(pyramid_admm_losses)
+        loss_total = loss_smooth + loss_ncc + loss_admm
 
-        return loss_total, loss_ncc, loss_smooth
+        return loss_total, loss_ncc, loss_smooth, loss_admm
 
 
 # Crecit: https://github.com/simonmeister/UnFlow/blob/master/src/e2eflow/core/losses.py

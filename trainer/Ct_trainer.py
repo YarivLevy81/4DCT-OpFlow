@@ -38,15 +38,18 @@ class TrainFramework(BaseTrainer):
 
             res_dict = self.model(img1, img2, vox_dim=vox_dim)
             flows12, flows21 = res_dict['flows_fw'], res_dict['flows_bk']
+            aux12, aux21 = res_dict['flows_fw'][1], res_dict['flows_bk'][1]
+            
             flows = [torch.cat([flo12, flo21], 1) for flo12, flo21 in
                      zip(flows12, flows21)]
+            aux = (aux12, aux21)
 
             # torch.cuda.empty_cache()
-            loss, l_ph, l_sm = self.loss_func(flows, img1, img2, vox_dim)
+            loss, l_ph, l_sm, l_admm = self.loss_func(flows, img1, img2, aux, vox_dim)
             # print(f'{loss} {l_ph} {l_sm}')
             # update meters
             key_meters.update(
-                [loss.mean().item(), l_ph.mean().item(), l_sm.mean().item()],
+                [loss.mean().item(), l_ph.mean().item(), l_sm.mean().item(), l_admm.mean().item()],
                 img1.size(0))
             loss = loss.mean()
 

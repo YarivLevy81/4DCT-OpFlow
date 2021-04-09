@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from utils.warp_utils import flow_warp
 from utils.misc import log
+from .admm.admm import ADMMSolverBlock, MaskGenerator
 
 
 def get_model(args):
@@ -44,6 +45,11 @@ class PWC3D(nn.Module):
             (self.flow_estimators.feat_dim + 2) * (self.n_frames - 1) + 1)
         # Added +1 because it fits the model lol
 
+        self.admm_block = ADMMSolverBlock(rho=args.admm_args.rho, lamb=args.admm_args.lamb, eta=args.admm_args.eta, 
+                grad=args.admm_args.grad, T=args.admm_args.T)
+        self.mask_gen = MaskGenerator(alpha=args.admm_args.alpha, learn_mask=args.admm_args.learn_mask)
+        self.apply_admm = args.admm_args.apply_admm
+
         self.conv_1x1 = nn.ModuleList([conv(192, 32, kernel_size=1,
                                             stride=1, dilation=1),
                                        conv(128, 32, kernel_size=1,
@@ -77,16 +83,27 @@ class PWC3D(nn.Module):
         x1_p = self.feature_pyramid_extractor(x1) + [x1]
         x2_p = self.feature_pyramid_extractor(x2) + [x2]
 
+        masks = []
+        masks.append(self.mask_gen(x1_p, scale=1/4))
+        masks.append(self.mask_gen(x2_p, scale=1/4))
+
         log(f'Pyramidized inputs')
         res_dict={}
-        res_dict['flows_fw'] = self.forward_2_frames(x1_p, x2_p)
+        res_dict['flows_fw'] = self.forward_2_frames(x1_p, x2_p, mask=masks[0])
         if w_bk:
-            res_dict['flows_bk'] = self.forward_2_frames(x2_p,x1_p)
+            res_dict['flows_bk'] = self.forward_2_frames(x2_p, x1_p, mask=masks[1])
         return res_dict
 
-    def forward_2_frames(self, x1_p: torch.Tensor, x2_p: torch.Tensor):
+    def forward_2_frames(self, x1_p: torch.Tensor, x2_p: torch.Tensor, mask):
         # init
         flows = []
+        aux_vars = {
+                "q":        [],
+                "c":        [],
+                "betas":    [],
+                "masks":    mask
+            }
+        
         N, C, H, W, D = x1_p[0].size()
         log(f'Got batch of size {N}')
         init_dtype = x1_p[0].dtype
@@ -125,6 +142,12 @@ class PWC3D(nn.Module):
             log(f'Sizes - flow={flow12.size()}, flow_fine={flow_fine.size()}')
             flow12 = flow12 + flow_fine
             flows.append(flow12)
+            
+            if self.apply_admm[l]:
+                Q, C, Betas = self.admm_block(flow, aux_vars["masks"])
+                aux_vars["q"].append(Q)
+                aux_vars["c"].append(C)
+                aux_vars["betas"].append(Betas)
 
             if l == self.output_level:
                 log(f'Broke flow construction at level {l+1}')
@@ -136,7 +159,7 @@ class PWC3D(nn.Module):
             flows = [F.interpolate(flow * 4, scale_factor=4,
                                    mode='trilinear', align_corners=True) for flow in flows]
 
-        return flows[::-1]
+        return flows[::-1], aux_vars
 
 
 class Correlation(nn.Module):
