@@ -3,6 +3,7 @@
     "num_workers": 5,
     "test_batch_size": 1000,
     "epochs": 160,
+    "levels": [40,100],
     "lr": 0.0001,
     "gamma": 0.7,
     "relu": 0.2,
@@ -26,13 +27,13 @@
     "warp_pad": "border",
     "w_scales": [1.0, 1.0, 1.0, 1.0, 0.0],
     "w_sm_scales": [25.0, 0.0, 0.0, 0.0, 0.0],
-    "w_ncc_scales": [1.0, 1.0, 1.0, 1.0, 1.0],
+    "w_ncc_scales": [[1.0, 1.0, 1.0, 1.0, 1.0],[1.0, 0.5, 0.25, 0.125, 0.0625]],
     "loss": "ncc",
-    "ncc_win" : 3,
+    "ncc_win" : [5,7],
     "smooth_flow_only": true,
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
-    "comment": "sm25_relu02,ncc3"
+    "comment": "con sm25_relu02,aft_160_lev1"
 }
 

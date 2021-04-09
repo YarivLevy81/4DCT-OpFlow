@@ -133,9 +133,11 @@ class UnFlowLoss(nn.modules.Module):
 
 
 class NCCLoss(nn.modules.Module):
-    def __init__(self, args):
+    def __init__(self, args, ncc_win=5, w_ncc_scales=[1.0, 1.0, 1.0, 1.0, 1.0]):
         super(NCCLoss, self).__init__()
         self.args = args
+        self.ncc_win = ncc_win
+        self.w_ncc_scales = w_ncc_scales
 
     def loss_smooth(self, flow, img1_scaled, vox_dim):
         # if 'smooth_2nd' in self.cfg and self.cfg.smooth_2nd:
@@ -161,7 +163,7 @@ class NCCLoss(nn.modules.Module):
         vox_dim = vox_dim.squeeze(0)
 
         pyramid_flows = output
-        loss_ncc_func = NCC(win=self.args.ncc_win)
+        loss_ncc_func = NCC(win=self.ncc_win)
         pyramid_smooth_losses = []
         pyramid_ncc_losses = []
 
@@ -205,7 +207,7 @@ class NCCLoss(nn.modules.Module):
         pyramid_smooth_losses = [l * w for l, w in
                                  zip(pyramid_smooth_losses, self.args.w_sm_scales)]
         pyramid_ncc_losses = [l * w for l, w in
-                              zip(pyramid_ncc_losses, self.args.w_ncc_scales)]
+                              zip(pyramid_ncc_losses, self.w_ncc_scales)]
         log(f'Weighting losses')
 
         loss_smooth = sum(pyramid_smooth_losses)

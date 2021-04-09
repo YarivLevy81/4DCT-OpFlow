@@ -7,6 +7,7 @@ import pathlib
 import datetime
 
 
+
 class BaseTrainer:
     """
     Base class for all trainers
@@ -33,21 +34,26 @@ class BaseTrainer:
         self.model_suffix = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
     def train(self):
-        for epoch in range(self.args.epochs):
-            self._run_one_epoch()
+        for l_idx, epochs in enumerate(self.args.levels):
+            if self.args.loss == "ncc":
+                self.loss_func.module.ncc_win = self.args.ncc_win[l_idx]
+                self.loss_func.module.w_ncc_scales = self.args.w_ncc_scales[l_idx]
 
-            if self.i_epoch % self.args.log_interval == 0:
-                error, loss = self._validate()
-                print(f'Epoch {self.i_epoch}, Error={error}')
-            if self.i_epoch % self.args.save_interval == 0:
-                self.save_model(error, f'4DCT_{self.model_suffix}_{self.i_epoch}')
+            for epoch in range(epochs):
+                self._run_one_epoch()
 
-            self.i_epoch += 1
+                if self.i_epoch % self.args.log_interval == 0:
+                    error, loss = self._validate()
+                    print(f'Epoch {self.i_epoch}, Error={error}')
+                if self.i_epoch % self.args.save_interval == 0:
+                    self.save_model(error, f'4DCT_{self.model_suffix}_{self.i_epoch}')
 
-        e = '%.3f' % error
-        l = '%.3f' % loss
-        # TODO: save with error
-        self.save_model(error, f'4DCT_{self.model_suffix}_{self.args.epochs}_e{e}_l{l}')
+                self.i_epoch += 1
+
+            e = '%.3f' % error
+            l = '%.3f' % loss
+            # TODO: save with error
+            self.save_model(error, f'4DCT_{self.model_suffix}_{self.i_epoch}_e{e}_l{l}')
 
     @abstractmethod
     def _run_one_epoch(self):
