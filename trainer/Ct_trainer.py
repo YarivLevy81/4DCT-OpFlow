@@ -195,7 +195,7 @@ class TrainFramework(BaseTrainer):
                 'flows_fw'][0].squeeze(0).float()
             flows += res
             # print(name)
-            images_warped[i_step % (self.args.variance_valid_len - 1)] = flow_warp(img2,
+            images_warped[(i_step % (self.args.variance_valid_len - 1))+1] = flow_warp(img2,
                                                                                    flows.unsqueeze(0))  # im1 recons
             count += 1
 

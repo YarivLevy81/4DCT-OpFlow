@@ -69,7 +69,7 @@ if __name__ == '__main__':
     iteration_lvl2 = opt.iteration_lvl2
     iteration_lvl3 = opt.iteration_lvl3
 
-    model_name = "LDR_4dct_one_pass"
+    model_name = "LDR_4dct_one_pass2"
 
     # imgshape = (160, 192, 144)
     # imgshape_4 = (160/4, 192/4, 144/4)
@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
             flows += F_xy.squeeze(0)
             # print(name)
-            images_warped[i_step % (variance_valid_len - 1)] = flow_warp(img2,
+            images_warped[(i_step % (variance_valid_len - 1))+1] = flow_warp(img2,
                                                                          flows.unsqueeze(0))  # im1 recons
             count += 1
 
@@ -319,7 +319,7 @@ if __name__ == '__main__':
             param.requires_grad = False
 
         model = Miccai2020_LDR_laplacian_unit_add_lvl2(2, 3, start_channel, is_train=True, imgshape=imgshape_2,
-                                                       range_flow=range_flow, model_lvl1=model_lvl1).to(device)
+                                                       range_flow=range_flow, model_lvl1=model_lvl1,device=device).to(device)
 
         loss_similarity = multi_resolution_NCC(win=5, scale=2)
         loss_smooth = smoothloss
@@ -460,7 +460,7 @@ if __name__ == '__main__':
             print("Loading weight for model_lvl2...", model_path)
 
         model = Miccai2020_LDR_laplacian_unit_add_lvl3(
-            2, 3, start_channel, is_train=True, imgshape=imgshape, range_flow=range_flow, model_lvl2=model_lvl2).to(device)
+            2, 3, start_channel, is_train=True, imgshape=imgshape, range_flow=range_flow, model_lvl2=model_lvl2,device=device).to(device)
 
         loss_similarity = multi_resolution_NCC(win=7, scale=3)
 
