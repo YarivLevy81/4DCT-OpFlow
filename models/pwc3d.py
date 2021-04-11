@@ -20,7 +20,7 @@ class PWC3D(nn.Module):
         self.num_chs = [1, 16, 32, 64, 96, 128, 192]
         self.output_level = 4
         self.num_levels = 7
-        self.leakyRELU = nn.LeakyReLU(0.2, inplace=True)
+        self.leakyRELU = nn.LeakyReLU(0.1, inplace=True)
         self.n_frames = 2
         self.feature_pyramid_extractor = FeatureExtractor(self.num_chs)
 
