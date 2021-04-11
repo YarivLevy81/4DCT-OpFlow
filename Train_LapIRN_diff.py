@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
             flows += F_xy.squeeze(0)
             # print(name)
-            images_warped[i_step % (variance_valid_len - 1)] = flow_warp(img2,
+            images_warped[(i_step % (variance_valid_len - 1))+1] = flow_warp(img2,
                                                                          flows.unsqueeze(0))  # im1 recons
             count += 1
 
