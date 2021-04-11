@@ -1,5 +1,5 @@
 {
-    "batch_size": 9,
+    "batch_size": 1,
     "num_workers": 5,
     "test_batch_size": 1000,
     "epochs": 160,
@@ -17,7 +17,7 @@
     "valid_type": "variance_valid",
     "checkpoint_path": "/mnt/storage/datasets/4DCT/checkpoints",
     "pretrained_model": "./models/dir",
-    "n_gpu": 3,
+    "n_gpu": 1,
     "cuda_devices":"7",
     "alpha": 10,
     "w_bk": true,

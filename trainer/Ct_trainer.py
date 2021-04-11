@@ -20,7 +20,7 @@ class TrainFramework(BaseTrainer):
             f'runs/research_{self.model_suffix}_{self.args.comment}')
 
     def _run_one_epoch(self):
-        key_meter_names = ['Loss', 'l_ph', 'l_sm']
+        key_meter_names = ['Loss', 'l_ph', 'l_sm', "l_admm"]
         key_meters = AverageMeter(i=len(key_meter_names), precision=4)
 
         # self._validate()
@@ -37,7 +37,7 @@ class TrainFramework(BaseTrainer):
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
             res_dict = self.model(img1, img2, vox_dim=vox_dim)
-            flows12, flows21 = res_dict['flows_fw'], res_dict['flows_bk']
+            flows12, flows21 = res_dict['flows_fw'][0], res_dict['flows_bk'][0]
             aux12, aux21 = res_dict['flows_fw'][1], res_dict['flows_bk'][1]
             
             flows = [torch.cat([flo12, flo21], 1) for flo12, flo21 in
@@ -61,13 +61,13 @@ class TrainFramework(BaseTrainer):
                 self.writer.add_figure(
                     'Training_Samples', p_valid, self.i_iter)
                 _max = torch.max(
-                    torch.abs(res_dict['flows_fw'][0][0, :, :, :, :]))
+                    torch.abs(res_dict['flows_fw'][0][0][0, :, :, :, :]))
                 _min = torch.min(
-                    torch.abs(res_dict['flows_fw'][0][0, :, :, :, :]))
+                    torch.abs(res_dict['flows_fw'][0][0][0, :, :, :, :]))
                 _mean = torch.mean(
-                    torch.abs(res_dict['flows_fw'][0][0, :, :, :, :]))
+                    torch.abs(res_dict['flows_fw'][0][0][0, :, :, :, :]))
                 _median = torch.median(
-                    torch.abs(res_dict['flows_fw'][0][0, :, :, :, :]))
+                    torch.abs(res_dict['flows_fw'][0][0][0, :, :, :, :]))
                 self.writer.add_scalars('metrices',
                                         {'max': _max, 'min': _min,
                                             'mean': _mean, '_median': _median},
@@ -86,11 +86,6 @@ class TrainFramework(BaseTrainer):
             mean_grad_norm = 0
             for param in [p for p in self.model.parameters() if p.requires_grad]:
                 mean_grad_norm += param.grad.data.mean()
-                # param.grad.data.mul_(1. / 1024)
-            log(f'Gradient data: len(requires_grad_params): {len(required_grad_params)}, '
-                f'mean_gard_norm={mean_grad_norm / len(required_grad_params)}, '
-                f'model_params={self.model.module.parameters(True)}'
-                f'num_params={sum(p.numel() for p in self.model.module.parameters() if p.requires_grad)}')
 
             self.optimizer.step()
             self.i_iter += 1

@@ -212,7 +212,7 @@ class NCCLoss(nn.modules.Module):
                 flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
             loss_ncc = loss_ncc_func(img1_scaled, img1_recons)
 
-            if i == len(pyramid_flows)-1 and self.args.w_admm > 0:
+            if i == len(pyramid_flows)-1 and self.args.w_admm[i] > 0:
                 loss_admm = self.loss_admm(aux12["q"][0], aux12["c"][0], aux12["betas"][0])
             else:
                 loss_admm = torch.zeros(1, device=loss_ncc.device)
@@ -222,7 +222,7 @@ class NCCLoss(nn.modules.Module):
                     flow=flow21 / s, img1_scaled=img2_recons, vox_dim=vox_dim)
                 loss_ncc += loss_ncc_func(img2_scaled, img2_recons)
 
-                if i == len(pyramid_flows)-1 and self.args.w_admm > 0:
+                if i == len(pyramid_flows)-1 and self.args.w_admm[i] > 0:
                     loss_admm += self.loss_admm(aux21["q"][0], aux21["c"][0], aux21["betas"][0])
 
                 loss_smooth /= 2.

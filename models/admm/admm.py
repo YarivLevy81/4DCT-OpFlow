@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
-from utils.flow_utils import dump_flow
 
 class ADMMSolverBlock(nn.Module):
     def __init__(self,rho,lamb,eta,grad="1st",T=1):
@@ -21,14 +20,12 @@ class ADMMSolverBlock(nn.Module):
 
     def forward(self, F, masks):
         # get masked grads
-        dF = self.get_gradients(F) #[dF/dx, dF/dy]
-        #dump_flow(F,"F","outflows/{}/".format(self.count))
-        #[dump_flow(df,dt,"outflows/{}/".format(self.count)) for dt,df in zip(["dFdx","dFdy"],dF)]
+        dF = self.get_gradients(F) #[dF/dx, dF/dy, dF/dz]
+        
         if self.grad == "2nd":
-            dF2 = [self.get_gradients(df) for df in dF] #[[dF/dxx, dF/dxy], [dF/dyx, dF/dyy]]
-            dF = [dF2[0][0], dF2[1][1]] #[dF/dxx, dF/dyy]
-        c = [df * m for df, m in zip(dF, masks)]
-        #[dump_flow(df,dt,"outflows/{}/".format(self.count)) for dt,df in zip(["cdx","cdy"],c)]
+            dF2 = [self.get_gradients(df) for df in dF] 
+            dF = [dF2[0][0], dF2[1][1], dF2[2][2]] #[dF/dxx, dF/dyy, dF/dzz]
+        c = [df * mask for df, mask in zip(dF, masks)]
 
         c = torch.cat(c, dim = 1) #[B,4,H,W]
         # initialize 
@@ -43,7 +40,6 @@ class ADMMSolverBlock(nn.Module):
         for t in range(self.T):
             q = self.apply_threshold(c,beta,t)
             beta = self.update_multipliers(q,c,beta)
-            #[dump_flow(q[:,2*i:2*i+2,:,:],dt,"outflows/{}/".format(self.count)) for i, dt in enumerate(["q{}dx".format(t),"q{}dy".format(t)])]
 
             Q.append(q)
             C.append(c)
@@ -89,20 +85,16 @@ class MaskGenerator(nn.Module):
         if learn_mask:
             self.ddx_encoder = MaskEncoder()
             self.ddy_encoder = MaskEncoder()
-    
-    def rgb2gray(self, im_rgb):
-        #im_rgb = (im_rgb + 1) / 2 # shift (-1,1) to (0,1)
-        im_gray = (im_rgb * torch.tensor([[[[0.2989]],[[0.5870]],[[0.1140]]]], dtype = torch.float, device = im_rgb.device)).sum(dim=1,keepdim=True)
-        return im_gray
+            self.ddz_encoder = MaskEncoder()
 
     def forward(self, image, scale=1/8):
         if self.learn_mask: 
-            im_grads = self.sobel(self.rgb2gray(image)) #[dx, dy]
-            encoders = [self.ddx_encoder, self.ddy_encoder]
+            im_grads = self.sobel(image) #[dx, dy, dz]
+            encoders = [self.ddx_encoder, self.ddy_encoder, self.ddz_encoder]
             masks = [enc(grad.abs()) for enc, grad in zip(encoders, im_grads)]
         else:
-            image = F.interpolate(image, scale_factor=scale, mode='area')
-            im_grads = self.sobel(image) #[dx, dy]
+            image = F.interpolate(image, scale_factor=scale, mode='trilinear')
+            im_grads = self.sobel(image) #[dx, dy, dz]
 
             masks = [torch.exp(-torch.mean(torch.abs(grad), 1, keepdim=True) * self.alpha) for grad in im_grads]
 
@@ -129,20 +121,34 @@ class MaskEncoder(nn.Module):
 
 
 class Sobel(nn.Module):
-    def __init__(self,  f_x = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
-                        f_y = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
-                        f_z = []):
+    def __init__(self,  f_x = [[[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
+                               [[-2, -4, -2], [0, 0, 0], [2, 4, 2]],
+                               [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]],
+                        f_y = [[[-1, -2, -1], [-2, -4, -2], [-1, -2, -1]],
+                               [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                               [[1, 2, 1], [2, 4, 2], [1, 2, 1]]],
+                        f_z = [[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
+                               [[-2, 0, 2], [-4, 0, 4], [-2, 0, 2]],
+                               [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]]]):
         super(Sobel, self).__init__()
-        Dx = torch.tensor(f_x, dtype = torch.float, requires_grad = False).view(1,1,3,3)
-        Dy = torch.tensor(f_y, dtype = torch.float, requires_grad = False).view(1,1,3,3)
-        Dz = torch.tensor(f_z, dtype = torch.float, requires_grad = False).view(1,1,3,3)
-        self.D = nn.Parameter(torch.cat((Dx, Dy, Dz), dim = 0), requires_grad = False)
+        Dx = torch.tensor(f_x, dtype = torch.float, requires_grad = False).view(1,1,3,3,3)
+        Dy = torch.tensor(f_y, dtype = torch.float, requires_grad = False).view(1,1,3,3,3)
+        Dz = torch.tensor(f_z, dtype = torch.float, requires_grad = False).view(1,1,3,3,3)
+
+        self.D = nn.Parameter(torch.cat((Dx, Dy, Dz), dim=0), requires_grad=False)
     
     def forward(self, image):
         # apply filter over each channel seperately
         im_ch = torch.split(image, 1, dim = 1)
-        grad_ch = [F.conv2d(ch, self.D, padding = 1) for ch in im_ch]
+        grad_ch = [F.conv3d(ch, self.D, padding = 1) for ch in im_ch]
+        #grad = F.conv3d(image, self.D, padding=1)
+
         dx = torch.cat([g[:,0:1,:,:] for g in grad_ch], dim=1)
         dy = torch.cat([g[:,1:2,:,:] for g in grad_ch], dim=1)
+        dz = torch.cat([g[:,2:3,:,:] for g in grad_ch], dim=1)
 
-        return [dx, dy]
+        #dx = grad[:,0:1,:,:,:]
+        #dy = grad[:,1:2,:,:,:]
+        #dz = grad[:,2:3,:,:,:]
+
+        return [dx, dy, dz]

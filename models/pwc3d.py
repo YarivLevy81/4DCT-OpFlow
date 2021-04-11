@@ -84,8 +84,8 @@ class PWC3D(nn.Module):
         x2_p = self.feature_pyramid_extractor(x2) + [x2]
 
         masks = []
-        masks.append(self.mask_gen(x1_p, scale=1/4))
-        masks.append(self.mask_gen(x2_p, scale=1/4))
+        masks.append(self.mask_gen(x1, scale=1/4))
+        masks.append(self.mask_gen(x2, scale=1/4))
 
         log(f'Pyramidized inputs')
         res_dict={}
@@ -144,7 +144,7 @@ class PWC3D(nn.Module):
             flows.append(flow12)
             
             if self.apply_admm[l]:
-                Q, C, Betas = self.admm_block(flow, aux_vars["masks"])
+                Q, C, Betas = self.admm_block(flow12, aux_vars["masks"])
                 aux_vars["q"].append(Q)
                 aux_vars["c"].append(C)
                 aux_vars["betas"].append(Betas)
