@@ -1,6 +1,6 @@
 {
-    "batch_size": 1,
-    "num_workers": 5,
+    "batch_size": 2,
+    "num_workers": 2,
     "test_batch_size": 1000,
     "epochs": 160,
     "levels": [40,100],

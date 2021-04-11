@@ -56,7 +56,7 @@ class TrainFramework(BaseTrainer):
             self.optimizer.zero_grad()
 
             if self.i_iter % 25 == 0 or self.i_iter == 1:
-                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res_dict['flows_fw'][0][0].detach().cpu(),
+                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res_dict['flows_fw'][0][0][0].detach().cpu(),
                                             show=False)
                 self.writer.add_figure(
                     'Training_Samples', p_valid, self.i_iter)
