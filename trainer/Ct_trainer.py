@@ -192,7 +192,7 @@ class TrainFramework(BaseTrainer):
                 count = 0
             # Remove batch dimension, net prediction
             res = self.model(img1, img2, vox_dim=vox_dim, w_bk=False)[
-                'flows_fw'][0].squeeze(0).float()
+                'flows_fw'][0][0].squeeze(0).float()
             flows += res
             # print(name)
             images_warped[(i_step % (self.args.variance_valid_len - 1))+1] = flow_warp(img2,

@@ -36,7 +36,7 @@ pyserial==3.4
 python-debian==0.1.32
 pyxdg==0.25
 PyYAML
-requests==2.18.4
+requests==2.21.0
 requests-unixsocket==0.1.5
 SecretStorage==2.3.1
 service-identity==16.0.0
