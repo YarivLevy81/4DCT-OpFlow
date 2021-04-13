@@ -3,10 +3,11 @@
     "num_workers": 5,
     "test_batch_size": 1000,
     "epochs": 25,
-    "levels": [25,100],
+    "levels": [40,60,100],
     "lr": 0.0001,
     "gamma": 0.7,
     "relu": 0.1,
+    "frame_dif": 10,
     "no_cuda": false,
     "dry_run": false,
     "log_interval": 1,
@@ -27,13 +28,13 @@
     "warp_pad": "border",
     "w_scales": [1.0, 1.0, 1.0, 1.0, 0.0],
     "w_sm_scales": [25.0, 0.0, 0.0, 0.0, 0.0],
-    "w_ncc_scales": [[1.0, 0.75, 0.5625, 0.4219, 0.3164],[1.0, 0.5, 0.25, 0.125, 0.0625]],
+    "w_ncc_scales": [[1.0, 1.0, 1.0, 1.0, 1.0],[1.0, 1.0, 1.0, 1.0, 1.0],[1.0, 0.5, 0.25, 0.125, 0.0625]],
     "loss": "ncc",
-    "ncc_win" : [5,7],
+    "ncc_win" : [3,5,7],
     "smooth_flow_only": true,
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
-    "comment": "sm=25,con levels from level 75"
+    "comment": "frame_dif10,levels"
 }
 

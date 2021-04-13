@@ -172,6 +172,7 @@ class TrainFramework(BaseTrainer):
         error = 0
         error_short = 0
         max_diff_error = 0
+        frame_diff_error = 0
         loss = 0
         im_h = im_w = 192
         im_d = 64
@@ -189,9 +190,11 @@ class TrainFramework(BaseTrainer):
             img2 = img2.unsqueeze(1).float()  # Add channel dimension
 
             if i_step % (self.args.variance_valid_len - 1) == 0:
+                image0 = img1
                 images_warped[i_step %
                               (self.args.variance_valid_len - 1)] = img1.squeeze(0)
                 count = 0
+                
             # Remove batch dimension, net prediction
             res = self.model(img1, img2, vox_dim=vox_dim, w_bk=False)[
                 'flows_fw'][0].squeeze(0).float()
@@ -214,6 +217,12 @@ class TrainFramework(BaseTrainer):
                 diff_warp[1] = images_warped[-1]
                 diff_variance = torch.std(diff_warp, dim=0)
                 max_diff_error += float(diff_variance.mean().item())
+                # calculating variance based only on model
+                res = self.model(image0, img2, vox_dim=vox_dim, w_bk=False)['flows_fw'][0].squeeze(0).float()
+                diff_warp[0] = images_warped[0]
+                diff_warp[1] = flow_warp(img2, res.unsqueeze(0))
+                diff_variance = torch.std(diff_warp, dim=0)
+                frame_diff_error += float(diff_variance.mean().item())
 
                 variance = torch.std(images_warped, dim=0)
                 # torch.cuda.empty_cache()
@@ -224,6 +233,7 @@ class TrainFramework(BaseTrainer):
             # torch.cuda.empty_cache()
 
         max_diff_error /= self.args.variance_valid_sets
+        frame_diff_error /= self.args.variance_valid_sets
         error /= self.args.variance_valid_sets
         error_short /= self.args.variance_valid_sets
         # loss /= len(self.valid_loader)
@@ -233,6 +243,9 @@ class TrainFramework(BaseTrainer):
 
         self.writer.add_scalar('Validation Difference_Error',
                                max_diff_error,
+                               self.i_epoch)
+        self.writer.add_scalar('Validation frame_difference_Error',
+                               frame_diff_error,
                                self.i_epoch)
         self.writer.add_scalar('Validation Error',
                                error,
@@ -245,10 +258,13 @@ class TrainFramework(BaseTrainer):
         #                        loss,
         #                        self.i_epoch)
 
-        p2_valid = plot_images(images_warped[0].detach().cpu(
+        p_valid = plot_images(images_warped[0].detach().cpu(
         ), images_warped[-1].detach().cpu(), img2.detach().cpu(), show=False)
         #p_valid = plot_image(variance.detach().cpu(), show=False)
         #                               flow12_net.detach().cpu(), show=False)
-        self.writer.add_figure('Valid_Images', p2_valid, self.i_epoch)
+        self.writer.add_figure('Valid_Images_original', p_valid, self.i_epoch)
+        p_dif_valid = plot_images(images_warped[0].detach().cpu(
+        ), diff_warp[-1].detach().cpu(), img2.detach().cpu(), show=False)
+        self.writer.add_figure('Valid_Images_big_flow', p_dif_valid, self.i_epoch)
 
         return error  # , loss
