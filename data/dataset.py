@@ -229,7 +229,7 @@ def resize_512_to_256(img_tup):
     img = img_tup[0]
     z = img.shape[2]
     vox_dim = img_tup[1]
-    img = zoom(img, zoom=[0.5, 0.5, 1])
+    img = zoom(img, zoom=[0.5, 0.5, 1],order=1)
     vox_dim[0] = vox_dim[0] * 2
     vox_dim[1] = vox_dim[1] * 2
 

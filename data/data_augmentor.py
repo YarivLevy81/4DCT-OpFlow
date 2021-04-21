@@ -10,8 +10,8 @@ def get_transforms(w_aug):
     rescale = tio.RescaleIntensity((0, 1))
     crop_or_pad = tio.CropOrPad(target_shape=(192, 192, 64), )
     if w_aug:
-        transforms_dict = {tio.RandomAffine(): 0.4, tio.RandomElasticDeformation(): 0.4, tio.RandomFlip(): 0.1,
-                           tio.Lambda(no_transform): 0.1}
+        transforms_dict = {tio.RandomAffine(): 0.4, tio.RandomElasticDeformation(): 0.4,
+                           tio.RandomFlip(): 0.1, tio.Lambda(no_transform): 0.1}
         pipe = tio.Compose([rescale, crop_or_pad, tio.OneOf(transforms_dict)])
     else:
         pipe = tio.Compose([rescale, crop_or_pad])

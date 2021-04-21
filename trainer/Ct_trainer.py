@@ -3,7 +3,7 @@ from .base_trainer import BaseTrainer
 from utils.misc import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 from utils.misc import log
-from utils.visualization_utils import plot_validation_fig, plot_training_fig, plot_image, plot_images
+from utils.visualization_utils import plot_validation_fig, plot_training_fig, plot_image, plot_images, plot_warped_img
 from utils.warp_utils import flow_warp
 import numpy as np
 from losses.flow_loss import get_loss
@@ -53,7 +53,24 @@ class TrainFramework(BaseTrainer):
             self.optimizer.zero_grad()
 
             if self.i_iter % 25 == 0 or self.i_iter == 1:
-                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res_dict['flows_fw'][0][0].detach().cpu(),
+                img1_recons = flow_warp(img2[0].unsqueeze(0), res_dict['flows_fw'][0][0].unsqueeze(0))
+                p_warped = plot_warped_img(img1[0].detach().cpu(), img1_recons[0].detach().cpu(), show=False)
+                self.writer.add_figure(
+                    'Training_Samples_warped', p_warped, self.i_iter)
+                
+                p_valid = plot_images(img1[0].detach().cpu(), img1_recons[0].detach().cpu(),
+                                      img2[0].detach().cpu(), show=False)
+                self.writer.add_figure('Training_Images_warping_difference', p_valid, self.i_epoch)
+                diff_warp = torch.zeros([2, 192, 192, 64], device=self.device)
+                diff_warp[0] = img1[0]
+                diff_warp[1] = img1_recons[0]
+                diff_variance = torch.std(diff_warp, dim=0)
+                diff_error = float(diff_variance.median().item())
+                self.writer.add_scalar('Training error', diff_error,
+                                       self.i_iter)
+
+                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(),
+                                            res_dict['flows_fw'][0][0].detach().cpu(),
                                             show=False)
                 self.writer.add_figure(
                     'Training_Samples', p_valid, self.i_iter)
@@ -84,10 +101,10 @@ class TrainFramework(BaseTrainer):
             for param in [p for p in self.model.parameters() if p.requires_grad]:
                 mean_grad_norm += param.grad.data.mean()
                 # param.grad.data.mul_(1. / 1024)
-            log(f'Gradient data: len(requires_grad_params): {len(required_grad_params)}, '
-                f'mean_gard_norm={mean_grad_norm / len(required_grad_params)}, '
-                f'model_params={self.model.module.parameters(True)}'
-                f'num_params={sum(p.numel() for p in self.model.module.parameters() if p.requires_grad)}')
+            #log(f'Gradient data: len(requires_grad_params): {len(required_grad_params)}, '
+            #    f'mean_gard_norm={mean_grad_norm / len(required_grad_params)}, '
+            #    f'model_params={self.model.module.parameters(True)}'
+            #    f'num_params={sum(p.numel() for p in self.model.module.parameters() if p.requires_grad)}')
 
             self.optimizer.step()
             self.i_iter += 1
@@ -169,7 +186,8 @@ class TrainFramework(BaseTrainer):
 
     @torch.no_grad()
     def variance_validate(self):
-        error = 0
+        error_median = 0
+        error_mean = 0
         error_short = 0
         max_diff_error = 0
         frame_diff_error = 0
@@ -194,7 +212,7 @@ class TrainFramework(BaseTrainer):
                 images_warped[i_step %
                               (self.args.variance_valid_len - 1)] = img1.squeeze(0)
                 count = 0
-                
+
             # Remove batch dimension, net prediction
             res = self.model(img1, img2, vox_dim=vox_dim, w_bk=False)[
                 'flows_fw'][0].squeeze(0).float()
@@ -208,37 +226,43 @@ class TrainFramework(BaseTrainer):
                 variance = torch.std(images_warped[:count + 1, :, :, :], dim=0)
                 error_short += float(variance.mean().item())
                 log(error_short)
+            if count == self.args.frame_dif+1:
+                # calculating variance based only on model
+                res = self.model(image0, img2, vox_dim=vox_dim, w_bk=False)[
+                                 'flows_fw'][0].squeeze(0).float()
+                diff_warp_straight = torch.zeros(
+                    [2, im_h, im_w, im_d], device=self.device)
+                diff_warp_straight[0] = images_warped[0]
+                diff_warp_straight[1] = flow_warp(img2, res.unsqueeze(0))
+                diff_variance_straight = torch.std(diff_warp_straight, dim=0)
+                frame_diff_error += float(diff_variance_straight.median().item())
 
             # if (i_step + 1) % (self.args.variance_valid_len - 1) == 0:
             if count == self.args.variance_valid_len - 1:
                 # calculating max_diff variance
-                diff_warp = torch.zeros([2, im_h, im_w, im_d], device=self.device)
+                diff_warp = torch.zeros(
+                    [2, im_h, im_w, im_d], device=self.device)
                 diff_warp[0] = images_warped[0]
                 diff_warp[1] = images_warped[-1]
                 diff_variance = torch.std(diff_warp, dim=0)
                 max_diff_error += float(diff_variance.mean().item())
-                # calculating variance based only on model
-                res = self.model(image0, img2, vox_dim=vox_dim, w_bk=False)['flows_fw'][0].squeeze(0).float()
-                diff_warp[0] = images_warped[0]
-                diff_warp[1] = flow_warp(img2, res.unsqueeze(0))
-                diff_variance = torch.std(diff_warp, dim=0)
-                frame_diff_error += float(diff_variance.mean().item())
-
                 variance = torch.std(images_warped, dim=0)
                 # torch.cuda.empty_cache()
-                error += float(variance.mean().item())
-                log(error)
+                error_median += float(variance.median().item())
+                error_mean += float(variance.mean().item())
+                log(error_mean)
                 flows = torch.zeros([3, im_h, im_w, im_d], device=self.device)
                 count = 0
             # torch.cuda.empty_cache()
 
         max_diff_error /= self.args.variance_valid_sets
         frame_diff_error /= self.args.variance_valid_sets
-        error /= self.args.variance_valid_sets
+        error_median /= self.args.variance_valid_sets
+        error_mean /= self.args.variance_valid_sets
         error_short /= self.args.variance_valid_sets
         # loss /= len(self.valid_loader)
         print(
-            f'Validation maxDiff error-> {max_diff_error}, Validation error -> {error} ,Short Validation error -> {error_short}')
+            f'Validation maxDiff error-> {max_diff_error}, Validation error mean -> {error_mean}, Validation error median -> {error_median} Short Validation error -> {error_short}')
         # print(f'Validation loss -> {loss}')
 
         self.writer.add_scalar('Validation Difference_Error',
@@ -247,8 +271,11 @@ class TrainFramework(BaseTrainer):
         self.writer.add_scalar('Validation frame_difference_Error',
                                frame_diff_error,
                                self.i_epoch)
-        self.writer.add_scalar('Validation Error',
-                               error,
+        self.writer.add_scalar('Validation Error(mean)',
+                               error_mean,
+                               self.i_epoch)
+        self.writer.add_scalar('Validation Error(median)',
+                               error_median,
                                self.i_epoch)
         self.writer.add_scalar('Validation Short Error',
                                error_short,
@@ -260,11 +287,13 @@ class TrainFramework(BaseTrainer):
 
         p_valid = plot_images(images_warped[0].detach().cpu(
         ), images_warped[-1].detach().cpu(), img2.detach().cpu(), show=False)
-        #p_valid = plot_image(variance.detach().cpu(), show=False)
+        # p_valid = plot_image(variance.detach().cpu(), show=False)
         #                               flow12_net.detach().cpu(), show=False)
         self.writer.add_figure('Valid_Images_original', p_valid, self.i_epoch)
         p_dif_valid = plot_images(images_warped[0].detach().cpu(
         ), diff_warp[-1].detach().cpu(), img2.detach().cpu(), show=False)
-        self.writer.add_figure('Valid_Images_big_flow', p_dif_valid, self.i_epoch)
+        p_dif_col = plot_warped_img(images_warped[0].detach().cpu(
+        ), images_warped[-1].detach().cpu())
+        self.writer.add_figure('Valid_Images_warped', p_dif_col, self.i_epoch)
 
-        return error  # , loss
+        return error_median  # , loss

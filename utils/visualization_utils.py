@@ -52,7 +52,7 @@ def plot_images(
         img2 = img2.squeeze(0)
     while len(img3.shape) > 3:
         img3 = img3.squeeze(0)
-    
+
     indices = np.array(img1.shape) // 2
     i, j, k = indices
     slice_x_1 = rotate(img1[i, :, :])
@@ -247,4 +247,42 @@ def plot_validation_fig(img1, img2, flow_gt, flow,
     if show:
         plt.show()
     # return slice_x_flow_col, slice_y_flow_col, slice_z_flow_col
+    return fig
+
+
+def plot_warped_img(img1, img1_recons, axes=None, output_path=None, show=False):
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(1, 3)
+    while len(img1.shape) > 3:
+        img1 = img1.squeeze(0)
+    while len(img1_recons.shape) > 3:
+        img1_recons = img1_recons.squeeze(0)
+    indices = np.array(img1.shape) // 2
+    i, j, k = indices
+    slice_x_r = rotate(img1[i, :, :])
+    slice_x_g = rotate(img1_recons[i, :, :])
+    slice_x_b = (slice_x_r+slice_x_g)/2
+    slice_x = np.dstack((slice_x_r, slice_x_g, slice_x_b))
+
+    slice_y_r = rotate(img1[:, j, :])
+    slice_y_g = rotate(img1_recons[:, j, :])
+    slice_y_b = (slice_y_r+slice_y_g)/2
+    slice_y = np.dstack((slice_y_r, slice_y_g, slice_y_b))
+    
+    slice_z_r = rotate(img1[:, :, k])
+    slice_z_g = rotate(img1_recons[:, :, k])
+    slice_z_b = (slice_z_r+slice_z_g)/2
+    slice_z = np.dstack((slice_z_r, slice_z_g, slice_z_b))
+
+    kwargs = {}
+    x_extent, y_extent, z_extent = [(0, b - 1) for b in img1.shape]
+    f0 = axes[0].imshow(slice_x, extent=y_extent + z_extent, **kwargs)
+    f1 = axes[1].imshow(slice_y, extent=x_extent + z_extent, **kwargs)
+    f2 = axes[2].imshow(slice_z, extent=x_extent + y_extent, **kwargs)
+    plt.tight_layout()
+    if output_path is not None and fig is not None:
+        fig.savefig(output_path)
+    if show:
+        plt.show()
     return fig
