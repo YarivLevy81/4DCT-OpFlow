@@ -116,6 +116,9 @@ class TrainFramework(BaseTrainer):
             return self.synt_validate()
         elif self.args.valid_type == 'variance_valid':
             return self.variance_validate(), 0
+        else:
+            return self.variance_validate(), 0
+
 
     def synt_validate(self):
         error = 0

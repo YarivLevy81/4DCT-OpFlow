@@ -1,8 +1,10 @@
 import numpy as np
 from scipy.ndimage import zoom
 import pathlib
+import torch
 from torch.utils.data import Dataset
 import torch.nn.functional as F
+import nibabel as nib
 
 from .dicom_utils import npz_to_ndarray_and_vox_dim as file_processor
 from .dicom_utils import npz_valid_to_ndarrays_flow_vox as vld_file_processor
@@ -11,7 +13,7 @@ from .data_augmentor import pre_augmentor, pre_validation_set
 
 
 class CT_4DDataset(Dataset):
-    def __init__(self, root: str, w_aug=False,frame_dif=1):
+    def __init__(self, root: str, w_aug=False, frame_dif=1):
         print(pathlib.Path.cwd())
         root_dir = pathlib.Path(root)
         if not root_dir.exists() or not root_dir.is_dir:
@@ -83,6 +85,57 @@ class CT_4DDataset(Dataset):
                     {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + self.frame_diff], 'dim': dim})
                 # self.patient_samples.append(
                 #    {'name': name + '_bk', 'img1': dir_files[idx+1], 'img2': dir_files[idx], 'dim': dim})
+
+class Learn2RegDataset(Dataset):
+    def __init__(self, root: str, w_aug=False):
+        print(pathlib.Path.cwd())
+        root_dir = pathlib.Path(root)
+        if not root_dir.exists() or not root_dir.is_dir:
+            raise FileExistsError(
+                f"{str(root_dir)} doesn't exist or isn't a directory")
+
+        self.root = root_dir
+        self.w_augmentations = w_aug
+        self.frame_diff = 1
+
+        # Traverse the root directory and count it's size
+        self.patient_directories = []
+        self.patient_samples = []
+        self.collect_samples()
+
+    def __len__(self):
+        # We return pairs -> there are len - 1 pairs from len files
+        return len(self.patient_samples)
+
+    def __getitem__(self, index):
+        # Adopted from https://github.com/multimodallearning/pdd2.5
+
+        img1 = self.patient_samples[index]['img1']
+        img2 = self.patient_samples[index]['img2']
+
+        p1, p2 = pre_augmentor(img1, img2, torch.Tensor([1., 1., 1]), self.w_augmentations)
+        return p1, p2, "" 
+
+    def collect_samples(self):
+        for entry in self.root.iterdir():
+            if entry.is_dir():
+                self.patient_directories.append(entry)
+
+        self.patient_directories = sorted(self.patient_directories)
+
+        for directory in self.patient_directories:
+            dir_files = []
+            for file in directory.iterdir():
+                dir_files.append(file)
+
+            if len(dir_files) != 2:
+                assert "Learn2Reg directories of 2 samples each"
+
+            img1 = torch.from_numpy(nib.load(dir_files[0].absolute()).get_data()).float()
+            img2 = torch.from_numpy(nib.load(dir_files[1].absolute()).get_data()).float()
+
+            self.patient_samples.append({'img1': img1, 'img2': img2})
+            self.patient_samples.append({'img1': img2, 'img2': img1})
 
 
 class CT_4DValidationset(Dataset):
@@ -244,6 +297,8 @@ def get_dataset(root="./raw", w_aug=False, data_type='train',frame_dif=1):
         return CT_4DValidationset(root)
     if data_type == 'variance_valid':
         return CT_4D_Variance_Valid_set(root=root, w_aug=w_aug)
+    if data_type == 'learn2reg':
+        return Learn2RegDataset(root=root, w_aug=w_aug)
 
 
 def take_name(file_path):
