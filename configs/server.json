@@ -3,12 +3,12 @@
     "num_workers": 5,
     "test_batch_size": 1000,
     "epochs": 25,
-    "after_epoch":180,
-    "levels": [25,50,25],
+    "after_epoch":280,
+    "levels": [50,100,50],
     "lr": 0.0001,
     "gamma": 0.7,
     "relu": 0.1,
-    "frame_dif": 3,
+    "frame_dif": 9,
     "no_cuda": false,
     "dry_run": false,
     "log_interval": 1,
@@ -20,7 +20,7 @@
     "checkpoint_path": "/mnt/storage/datasets/4DCT/checkpoints",
     "pretrained_model": "./models/dir",
     "n_gpu": 3,
-    "cuda_devices":"0,1,2",
+    "cuda_devices":"1,2,3",
     "alpha": 10,
     "w_bk": true,
     "w_ternary": 1,
@@ -28,7 +28,7 @@
     "w_ssim": 1,
     "warp_pad": "border",
     "w_scales": [1.0, 1.0, 1.0, 1.0, 0.0],
-    "w_sm_scales": [10.0, 0.0, 0.0, 0.0, 0.0],
+    "w_sm_scales": [20.0, 0.0, 0.0, 0.0, 0.0],
     "w_ncc_scales": [[1.0, 1.0, 1.0, 1.0, 1.0],[1.0, 1.0, 1.0, 1.0, 1.0],[1.0, 1.0, 1.0, 1.0, 1.0]],
     "loss": "ncc",
     "ncc_win" : [3,5,7],
@@ -36,6 +36,6 @@
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
-    "comment": "cont frame_dif10->5->3,aft 450"
+    "comment": "fdif9_new valid"
 }
 

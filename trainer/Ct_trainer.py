@@ -191,6 +191,11 @@ class TrainFramework(BaseTrainer):
         error_short = 0
         max_diff_error = 0
         frame_diff_error = 0
+        error_median_box = 0
+        error_mean_box = 0
+        error_short_box = 0
+        max_diff_error_box = 0
+        frame_diff_error_box = 0
         loss = 0
         im_h = im_w = 192
         im_d = 64
@@ -225,6 +230,9 @@ class TrainFramework(BaseTrainer):
             if count == self.args.variance_valid_short_len - 1:
                 variance = torch.std(images_warped[:count + 1, :, :, :], dim=0)
                 error_short += float(variance.mean().item())
+                box_variance = variance[49:148, 49:148, 16:48]
+                error_short_box += float(box_variance.mean().item())
+
                 log(error_short)
             if count == self.args.frame_dif+1:
                 # calculating variance based only on model
@@ -236,7 +244,8 @@ class TrainFramework(BaseTrainer):
                 diff_warp_straight[1] = flow_warp(img2, res.unsqueeze(0))
                 diff_variance_straight = torch.std(diff_warp_straight, dim=0)
                 frame_diff_error += float(diff_variance_straight.median().item())
-
+                box_variance = diff_variance_straight[49:148, 49:148, 16:48]
+                frame_diff_error_box += float(box_variance.mean().item())
             # if (i_step + 1) % (self.args.variance_valid_len - 1) == 0:
             if count == self.args.variance_valid_len - 1:
                 # calculating max_diff variance
@@ -246,10 +255,15 @@ class TrainFramework(BaseTrainer):
                 diff_warp[1] = images_warped[-1]
                 diff_variance = torch.std(diff_warp, dim=0)
                 max_diff_error += float(diff_variance.mean().item())
+                box_variance = diff_variance[49:148, 49:148, 16:48]
+                max_diff_error_box += float(box_variance.mean().item())
+                
                 variance = torch.std(images_warped, dim=0)
-                # torch.cuda.empty_cache()
                 error_median += float(variance.median().item())
                 error_mean += float(variance.mean().item())
+                box_variance = variance[49:148, 49:148, 16:48]
+                error_mean_box += float(box_variance.mean().item())
+                error_median_box += float(box_variance.median().item())
                 log(error_mean)
                 flows = torch.zeros([3, im_h, im_w, im_d], device=self.device)
                 count = 0
@@ -260,6 +274,12 @@ class TrainFramework(BaseTrainer):
         error_median /= self.args.variance_valid_sets
         error_mean /= self.args.variance_valid_sets
         error_short /= self.args.variance_valid_sets
+
+        max_diff_error_box /= self.args.variance_valid_sets
+        frame_diff_error_box /= self.args.variance_valid_sets
+        error_median_box /= self.args.variance_valid_sets
+        error_mean_box /= self.args.variance_valid_sets
+        error_short_box /= self.args.variance_valid_sets
         # loss /= len(self.valid_loader)
         print(
             f'Validation maxDiff error-> {max_diff_error}, Validation error mean -> {error_mean}, Validation error median -> {error_median} Short Validation error -> {error_short}')
@@ -281,6 +301,21 @@ class TrainFramework(BaseTrainer):
                                error_short,
                                self.i_epoch)
 
+        self.writer.add_scalar('Validation Difference_Error_box',
+                               max_diff_error_box,
+                               self.i_epoch)
+        self.writer.add_scalar('Validation frame_difference_Error_box',
+                               frame_diff_error_box,
+                               self.i_epoch)
+        self.writer.add_scalar('Validation Error(mean)_box',
+                               error_mean_box,
+                               self.i_epoch)
+        self.writer.add_scalar('Validation Error(median)_box',
+                               error_median_box,
+                               self.i_epoch)
+        self.writer.add_scalar('Validation Short Error_box',
+                               error_short_box,
+                               self.i_epoch)
         # self.writer.add_scalar('Validation Loss',
         #                        loss,
         #                        self.i_epoch)
