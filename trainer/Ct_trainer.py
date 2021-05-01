@@ -61,7 +61,7 @@ class TrainFramework(BaseTrainer):
                 p_valid = plot_images(img1[0].detach().cpu(), img1_recons[0].detach().cpu(),
                                       img2[0].detach().cpu(), show=False)
                 self.writer.add_figure('Training_Images_warping_difference', p_valid, self.i_epoch)
-                diff_warp = torch.zeros([2, 192, 192, 64], device=self.device)
+                diff_warp = torch.zeros([2, 192, 192, 192], device=self.device)
                 diff_warp[0] = img1[0]
                 diff_warp[1] = img1_recons[0]
                 diff_variance = torch.std(diff_warp, dim=0)
@@ -201,7 +201,7 @@ class TrainFramework(BaseTrainer):
         frame_diff_error_box = 0
         loss = 0
         im_h = im_w = 192
-        im_d = 64
+        im_d = 192
         flows = torch.zeros([3, im_h, im_w, im_d], device=self.device)
         images_warped = torch.zeros(
             [self.args.variance_valid_len, im_h, im_w, im_d], device=self.device)

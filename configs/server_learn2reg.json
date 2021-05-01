@@ -1,7 +1,7 @@
 {
-    "batch_size": 5,
+    "batch_size": 4,
     "num_workers": 5,
-    "test_batch_size": 5,
+    "test_batch_size": 500,
     "epochs": 500,
     "after_epoch":0,
     "levels": [50,100,50],
@@ -19,8 +19,8 @@
     "valid_type": "learn2reg",
     "checkpoint_path": "/mnt/storage/datasets/4DCT/checkpoints_learn2reg",
     "pretrained_model": "",
-    "n_gpu": 1,
-    "cuda_devices":"7",
+    "n_gpu": 4,
+    "cuda_devices":"1,2,3,7",
     "alpha": 10,
     "w_bk": false,
     "w_ternary": 1,
@@ -36,6 +36,6 @@
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
-    "comment": "learn2reg_test"
+    "comment": "learn2reg"
 }
 

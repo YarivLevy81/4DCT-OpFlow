@@ -8,7 +8,7 @@ def no_transform(x):
 
 def get_transforms(w_aug):
     rescale = tio.RescaleIntensity((0, 1))
-    crop_or_pad = tio.CropOrPad(target_shape=(192, 192, 64), )
+    crop_or_pad = tio.CropOrPad(target_shape=(192, 192, 192), )
     if w_aug:
         transforms_dict = {tio.RandomAffine(): 0.4, tio.RandomElasticDeformation(): 0.4,
                            tio.RandomFlip(): 0.1, tio.Lambda(no_transform): 0.1}

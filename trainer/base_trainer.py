@@ -47,7 +47,8 @@ class BaseTrainer:
                     error, loss = self._validate()
                     print(f'Epoch {self.i_epoch}, Error={error}')
                 if self.i_epoch % self.args.save_interval == 0:
-                    self.save_model(error, f'4DCT_{self.model_suffix}_{self.i_epoch}')
+                    self.save_model(error, f'l2r_{self.model_suffix}_{self.i_epoch}')
+                self.save_model(error, f'l2r_latest')
 
                 self.i_epoch += 1
 
