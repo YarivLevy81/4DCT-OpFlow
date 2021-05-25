@@ -3,7 +3,7 @@ from torch.autograd import Variable
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.warp_utils import flow_warp
+from utils.warp_utils import flow_warp, get_occu_mask_bidirection
 from utils.misc import log
 
 # Loss blocks
@@ -166,6 +166,8 @@ class NCCLoss(nn.modules.Module):
         loss_ncc_func = NCC(win=self.ncc_win)
         pyramid_smooth_losses = []
         pyramid_ncc_losses = []
+        pyramid_occu_mask1 = []
+        pyramid_occu_mask2 = []
 
         s = 1.
         for i, flow in enumerate(pyramid_flows):
@@ -184,16 +186,30 @@ class NCCLoss(nn.modules.Module):
             img1_recons = flow_warp(img2_scaled, flow12)
             img2_recons = flow_warp(img1_scaled, flow21)
 
+            if self.args.w_occ:
+                if i == 0:
+                    occu_mask1 = 1 - get_occu_mask_bidirection(flow12, flow21)
+                    occu_mask2 = 1 - get_occu_mask_bidirection(flow21, flow12)
+                else:
+                    occu_mask1 = F.interpolate(pyramid_occu_mask1[0],
+                                               (H, W, D), mode='nearest')
+                    occu_mask2 = F.interpolate(pyramid_occu_mask2[0],
+                                               (H, W, D), mode='nearest')
+            else:
+                occu_mask1 = occu_mask2 = 1
+            pyramid_occu_mask1.append(occu_mask1)
+            pyramid_occu_mask2.append(occu_mask2)
+
             if i == 0:
                 s = min(H, W, D)
 
             loss_smooth = self.loss_smooth(
                 flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
-            loss_ncc = loss_ncc_func(img1_scaled, img1_recons)
+            loss_ncc = loss_ncc_func(img1_scaled*occu_mask1, img1_recons*occu_mask1)
             if self.args.w_bk:
                 loss_smooth += self.loss_smooth(
                     flow=flow21 / s, img1_scaled=img2_recons, vox_dim=vox_dim)
-                loss_ncc += loss_ncc_func(img2_scaled, img2_recons)
+                loss_ncc += loss_ncc_func(img2_scaled*occu_mask2, img2_recons*occu_mask2)
                 loss_smooth /= 2.
                 loss_ncc /= 2.
 

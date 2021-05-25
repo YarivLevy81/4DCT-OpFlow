@@ -33,3 +33,13 @@ def flow_warp(img2, flow12, pad='border', mode='bilinear'):
         img2, v_grid, mode=mode, padding_mode=pad, align_corners=True)
 
     return im1_recons
+
+
+def get_occu_mask_bidirection(flow12, flow21, scale=0.01, bias=0.5):
+    flow21_warped = flow_warp(flow21, flow12, pad='zeros')
+    flow12_diff = flow12 + flow21_warped
+    mag = (flow12 * flow12).sum(1, keepdim=True) + \
+          (flow21_warped * flow21_warped).sum(1, keepdim=True)
+    occ_thresh = scale * mag + bias
+    occ = (flow12_diff * flow12_diff).sum(1, keepdim=True) > occ_thresh
+    return occ.float()
