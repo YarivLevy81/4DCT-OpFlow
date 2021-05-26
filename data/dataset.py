@@ -11,7 +11,7 @@ from .data_augmentor import pre_augmentor, pre_validation_set
 
 
 class CT_4DDataset(Dataset):
-    def __init__(self, root: str, w_aug=False):
+    def __init__(self, root: str, w_aug=False,frame_dif=1):
         print(pathlib.Path.cwd())
         root_dir = pathlib.Path(root)
         if not root_dir.exists() or not root_dir.is_dir:
@@ -20,6 +20,7 @@ class CT_4DDataset(Dataset):
 
         self.root = root_dir
         self.w_augmentations = w_aug
+        self.frame_diff = frame_dif
 
         # Traverse the root directory and count it's size
         self.patient_directories = []
@@ -70,13 +71,16 @@ class CT_4DDataset(Dataset):
                 dim = 256
             else:
                 dim = 512
-            for idx in range(len(dir_files) - 1):
+            
+            if len(dir_files) < self.frame_diff+1:
+                continue
+            for idx in range(len(dir_files) - self.frame_diff):
                 sample_name = dir_files[idx].name
                 sample_name = sample_name[sample_name.index(
                     '_'):sample_name.index('(')]
                 name = dir_files[idx].parent.name + sample_name
                 self.patient_samples.append(
-                    {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + 1], 'dim': dim})
+                    {'name': name, 'img1': dir_files[idx], 'img2': dir_files[idx + self.frame_diff], 'dim': dim})
                 # self.patient_samples.append(
                 #    {'name': name + '_bk', 'img1': dir_files[idx+1], 'img2': dir_files[idx], 'dim': dim})
 
@@ -225,16 +229,16 @@ def resize_512_to_256(img_tup):
     img = img_tup[0]
     z = img.shape[2]
     vox_dim = img_tup[1]
-    img = zoom(img, zoom=[0.5, 0.5, 1])
+    img = zoom(img, zoom=[0.5, 0.5, 1],order=1)
     vox_dim[0] = vox_dim[0] * 2
     vox_dim[1] = vox_dim[1] * 2
 
     return img, vox_dim
 
 
-def get_dataset(root="./raw", w_aug=False, data_type='train'):
+def get_dataset(root="./raw", w_aug=False, data_type='train',frame_dif=1):
     if data_type == 'train':
-        return CT_4DDataset(root=root, w_aug=w_aug)
+        return CT_4DDataset(root=root, w_aug=w_aug, frame_dif=frame_dif)
     if data_type == 'synthetic':
         # return CT_4DDataset(root=root, w_aug=w_aug)
         return CT_4DValidationset(root)

@@ -30,7 +30,7 @@ if __name__ == '__main__':
     print(f'args={args}')
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_devices
-    train_set = get_dataset(root=args.data_path, w_aug=True)
+    train_set = get_dataset(root=args.data_path, w_aug=True, frame_dif=args.frame_dif)
     valid_set = get_dataset(root=args.valid_path, w_aug=False, data_type=args.valid_type)
 
     print('{} training samples found'.format(len(train_set)))

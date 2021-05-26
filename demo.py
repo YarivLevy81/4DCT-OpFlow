@@ -56,7 +56,7 @@ def max_diff_warp_viewer(loader, model, model_type='pwc', device='cpu'):
                 img2, flows.unsqueeze(0))  # im1 recons
             #variance = torch.std(images_warped, dim=0)
             plot_images(images_warped[0], images_warped[1], img2,
-                        output_path=f'./demo_pics/mid_diff_IRN_{i_step//variance_valid_len}_{suff}.jpg', show=False)
+                        output_path=f'./demo_pics/f_dif10/mid_diff_{i_step//variance_valid_len}_{suff}.jpg', show=False)
             #variance = torch.std(images_warped[:count + 1, :, :, :], dim=0)
             #error_short += float(variance.mean().item())
             # log(error_short)
@@ -66,7 +66,7 @@ def max_diff_warp_viewer(loader, model, model_type='pwc', device='cpu'):
                 img2, flows.unsqueeze(0))  # im1 recons
             variance = torch.std(images_warped, dim=0)
             plot_images(images_warped[0], images_warped[1], img2,
-                        output_path=f'./demo_pics/max_diff_IRN_{i_step//variance_valid_len}_{suff}.jpg', show=False)
+                        output_path=f'./demo_pics/f_dif10/max_diff_{i_step//variance_valid_len}_{suff}.jpg', show=False)
             # torch.cuda.empty_cache()
             error += float(variance.mean().item())
             # log(error)
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     device = 'cpu'
     big_flows = True
     #model_type = 'pwc'
-    model_type = 'lapIRN'
+    model_type = 'pwc'
     if model_type == 'pwc':
         model = pwc3d.PWC3D(args)
         # Load pretrained model

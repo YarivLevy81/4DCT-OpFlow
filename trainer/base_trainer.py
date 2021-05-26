@@ -7,7 +7,6 @@ import pathlib
 import datetime
 
 
-
 class BaseTrainer:
     """
     Base class for all trainers
@@ -28,7 +27,7 @@ class BaseTrainer:
 
         self.best_error = np.inf
         self.save_root = pathlib.Path(self.args.checkpoint_path)
-        self.i_epoch = 1
+        self.i_epoch = self.args.after_epoch+1
         self.i_iter = 1
 
         self.model_suffix = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -43,6 +42,8 @@ class BaseTrainer:
                 self._run_one_epoch()
 
                 if self.i_epoch % self.args.log_interval == 0:
+                    #error = 0
+                    #loss = 0
                     error, loss = self._validate()
                     print(f'Epoch {self.i_epoch}, Error={error}')
                 if self.i_epoch % self.args.save_interval == 0:
@@ -127,8 +128,8 @@ class BaseTrainer:
 
         # if is_best:
         #     self.best_error = error
-
-        models = {'epoch': self.i_epoch,
-                  'state_dict': self.model.module.state_dict()}
-
+        try:
+            models = {'epoch': self.i_epoch, 'state_dict': self.model.module.state_dict()}
+        except:
+            models = {'epoch': self.i_epoch, 'state_dict': self.model.state_dict()}
         save_checkpoint(self.save_root, models, name, is_best=False)
