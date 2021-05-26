@@ -233,7 +233,7 @@ class TrainFramework(BaseTrainer):
             if count == self.args.frame_dif+1:
                 # calculating variance based only on model
                 res = self.model(image0, img2, vox_dim=vox_dim, w_bk=False)[
-                                 'flows_fw'][0].squeeze(0).float()
+                                 'flows_fw'][0][0].squeeze(0).float()
                 diff_warp_straight = torch.zeros(
                     [2, im_h, im_w, im_d], device=self.device)
                 diff_warp_straight[0] = images_warped[0]
