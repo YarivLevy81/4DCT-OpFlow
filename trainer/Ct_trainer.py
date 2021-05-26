@@ -72,7 +72,7 @@ class TrainFramework(BaseTrainer):
                 diff_error = float(diff_variance.median().item())
                 self.writer.add_scalar('Training error', diff_error,
                                        self.i_iter)
-          )
+          
                 self.writer.add_figure(
                     'Training_Samples', p_valid, self.i_iter)
                 _max = torch.max(
@@ -101,14 +101,6 @@ class TrainFramework(BaseTrainer):
             mean_grad_norm = 0
             for param in [p for p in self.model.parameters() if p.requires_grad]:
                 mean_grad_norm += param.grad.data.mean()
-<<<<<<< HEAD
-=======
-                # param.grad.data.mul_(1. / 1024)
-            #log(f'Gradient data: len(requires_grad_params): {len(required_grad_params)}, '
-            #    f'mean_gard_norm={mean_grad_norm / len(required_grad_params)}, '
-            #    f'model_params={self.model.module.parameters(True)}'
-            #    f'num_params={sum(p.numel() for p in self.model.module.parameters() if p.requires_grad)}')
->>>>>>> f9560ca420cdcd83907e7e34dcc2cab2076ff85e
 
             self.optimizer.step()
             self.i_iter += 1

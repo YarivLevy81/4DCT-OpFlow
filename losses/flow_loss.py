@@ -227,8 +227,7 @@ class NCCLoss(nn.modules.Module):
 
             loss_smooth = self.loss_smooth(
                 flow=flow12 / s, img1_scaled=img1_recons, vox_dim=vox_dim)
-<<<<<<< HEAD
-            loss_ncc = loss_ncc_func(img1_scaled, img1_recons)
+            loss_ncc = loss_ncc_func(img1_scaled*occu_mask1, img1_recons*occu_mask1)
 
             if i == len(pyramid_flows)-1 and self.args.w_admm[i] > 0:
                 loss_admm = self.loss_admm(aux12["q"][0], aux12["c"][0], aux12["betas"][0])
@@ -238,18 +237,11 @@ class NCCLoss(nn.modules.Module):
             if self.args.w_bk:
                 loss_smooth += self.loss_smooth(
                     flow=flow21 / s, img1_scaled=img2_recons, vox_dim=vox_dim)
-                loss_ncc += loss_ncc_func(img2_scaled, img2_recons)
+                loss_ncc += loss_ncc_func(img2_scaled*occu_mask2, img2_recons*occu_mask2)
 
                 if i == len(pyramid_flows)-1 and self.args.w_admm[i] > 0:
                     loss_admm += self.loss_admm(aux21["q"][0], aux21["c"][0], aux21["betas"][0])
 
-=======
-            loss_ncc = loss_ncc_func(img1_scaled*occu_mask1, img1_recons*occu_mask1)
-            if self.args.w_bk:
-                loss_smooth += self.loss_smooth(
-                    flow=flow21 / s, img1_scaled=img2_recons, vox_dim=vox_dim)
-                loss_ncc += loss_ncc_func(img2_scaled*occu_mask2, img2_recons*occu_mask2)
->>>>>>> f9560ca420cdcd83907e7e34dcc2cab2076ff85e
                 loss_smooth /= 2.
                 loss_ncc /= 2.
                 loss_admm /= 2.
