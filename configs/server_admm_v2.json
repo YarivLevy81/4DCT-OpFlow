@@ -1,12 +1,13 @@
 {
     "after_epoch": 0,
-    "batch_size": 9,
-    "num_workers": 5,
+    "batch_size": 24,
+    "num_workers": 12,
     "test_batch_size": 1000,
     "epochs": 250,
     "levels": [
-        25,
-        100
+        50,
+        100,
+        50
     ],
     "lr": 0.0001,
     "gamma": 0.7,
@@ -62,15 +63,16 @@
     ],
     "loss": "ncc",
     "ncc_win": [
+        3,
         5,
-        7
+        7,
     ],
     "smooth_flow_only": true,
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
     "w_occ": true,
-    "comment": "admm + occ",
+    "comment": "ADMM + occu",
     "w_admm": [
         1.0,
         0.0,
