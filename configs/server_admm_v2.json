@@ -65,7 +65,7 @@
     "ncc_win": [
         3,
         5,
-        7,
+        7
     ],
     "smooth_flow_only": true,
     "variance_valid_len": 10,
