@@ -56,7 +56,6 @@ class TrainFramework(BaseTrainer):
             self.optimizer.zero_grad()
 
             if self.i_iter % 25 == 0 or self.i_iter == 1:
-                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res_dict['flows_fw'][0][0][0].detach().cpu(), show=False)
                 img1_recons = flow_warp(img2[0].unsqueeze(0), res_dict['flows_fw'][0][0][0].unsqueeze(0))
                 p_warped = plot_warped_img(img1[0].detach().cpu(), img1_recons[0].detach().cpu(), show=False)
                 self.writer.add_figure(
@@ -73,6 +72,7 @@ class TrainFramework(BaseTrainer):
                 self.writer.add_scalar('Training error', diff_error,
                                        self.i_iter)
           
+                p_valid = plot_training_fig(img1[0].detach().cpu(), img2[0].detach().cpu(), res_dict['flows_fw'][0][0][0].detach().cpu(), show=False)
                 self.writer.add_figure(
                     'Training_Samples', p_valid, self.i_iter)
                 _max = torch.max(
