@@ -3,12 +3,12 @@
     "num_workers": 5,
     "test_batch_size": 1000,
     "epochs": 25,
-    "after_epoch":0,
+    "after_epoch":200,
     "levels": [50,100,50],
     "lr": 0.0001,
     "gamma": 0.7,
     "relu": 0.1,
-    "frame_dif": 5,
+    "frame_dif": 3,
     "no_cuda": false,
     "dry_run": false,
     "log_interval": 1,
@@ -36,6 +36,7 @@
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
-    "comment": "framedif5 with occu"
+    "w_occ":true,
+    "comment": "framedif5->3 with occu"
 }
 

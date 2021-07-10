@@ -36,6 +36,7 @@
     "variance_valid_len": 10,
     "variance_valid_short_len": 5,
     "variance_valid_sets": 15,
+    "w_occ":true,
     "comment": "fdif9_new valid"
 }
 
